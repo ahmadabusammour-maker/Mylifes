@@ -84,6 +84,9 @@
             const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
             const [gameToDelete, setGameToDelete] = useState(null);
             const [errorMsg, setErrorMsg] = useState("");
+            
+            // New state to hold our Virtual File URL for advanced games
+            const [blobUrl, setBlobUrl] = useState(null);
 
             const [addMethod, setAddMethod] = useState('url'); 
             const [newGameName, setNewGameName] = useState('');
@@ -98,8 +101,6 @@
                 const loadGames = async () => {
                     try {
                         let savedGames = await localforage.getItem('vault_games');
-                        
-                        // Migration from old localStorage (so you don't lose old games)
                         if (!savedGames) {
                             const oldSaved = localStorage.getItem('vault_games');
                             if (oldSaved) {
@@ -109,7 +110,6 @@
                                 savedGames = [];
                             }
                         }
-                        
                         setGames(savedGames);
                         setIsLoaded(true);
                     } catch (err) {
@@ -129,6 +129,24 @@
                 }
             }, [games, isLoaded]);
 
+            // Create a Blob URL safely when playing a local file game to bypass WASM/Sandbox restrictions
+            useEffect(() => {
+                if (playingGame && playingGame.type === 'file') {
+                    // Create a virtual file in memory
+                    const blob = new Blob([playingGame.content], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    setBlobUrl(url);
+                    
+                    // Cleanup memory when the game is closed
+                    return () => {
+                        URL.revokeObjectURL(url);
+                        setBlobUrl(null);
+                    };
+                } else {
+                    setBlobUrl(null);
+                }
+            }, [playingGame]);
+
             const handleAddGame = (e) => {
                 e.preventDefault();
                 setErrorMsg("");
@@ -142,7 +160,6 @@
                     finalUrl = newGameUrl;
                 } else {
                     if (!newGameFileContent) return;
-                    // No data limit here anymore! Large files save directly via IndexedDB
                     finalContent = newGameFileContent;
                 }
 
@@ -433,11 +450,13 @@
                                 </button>
                             </div>
                             <div className="flex-1 bg-black relative">
-                                {playingGame.type === 'url' ? (
-                                    <iframe src={playingGame.url} className="absolute inset-0 w-full h-full border-none" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock" allowFullScreen />
-                                ) : (
-                                    <iframe srcDoc={playingGame.content} className="absolute inset-0 w-full h-full border-none bg-white" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock" allowFullScreen />
-                                )}
+                                <iframe 
+                                    src={playingGame.type === 'url' ? playingGame.url : blobUrl} 
+                                    className="absolute inset-0 w-full h-full border-none bg-white" 
+                                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock allow-downloads allow-modals"
+                                    allow="fullscreen; pointer-lock; clipboard-read; clipboard-write"
+                                    allowFullScreen 
+                                />
                             </div>
                         </div>
                     )}
