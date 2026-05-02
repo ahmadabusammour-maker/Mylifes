@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Vault</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React and ReactDOM libraries -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel for JSX transformation in the browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0f172a;
+            margin: 0;
+            overflow: hidden;
+        }
+        /* Custom scrollbar for the glass look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useRef, useEffect } = React;
+        
+        // Custom Hook to use Lucide Icons in the browser build
+        const Icon = ({ name, size = 24, className = "", fill = "none" }) => {
+            const iconRef = useRef(null);
+            useEffect(() => {
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            }, [name]);
+
+            return <i data-lucide={name} style={{ width: size, height: size }} className={className} fill={fill}></i>;
+        };
+
+        function App() {
+            const [games, setGames] = useState([]);
+            const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+            const [playingGame, setPlayingGame] = useState(null);
+            const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+            const [gameToDelete, setGameToDelete] = useState(null);
+
+            const [addMethod, setAddMethod] = useState('url'); 
+            const [newGameName, setNewGameName] = useState('');
+            const [newGameUrl, setNewGameUrl] = useState('');
+            const [newGameCover, setNewGameCover] = useState('');
+            const [newGameFileContent, setNewGameFileContent] = useState('');
+            const [fileName, setFileName] = useState('');
+            const fileInputRef = useRef(null);
+
+            const handleAddGame = (e) => {
+                e.preventDefault();
+                if (!newGameName.trim()) return;
+
+                const newGame = {
+                    id: crypto.randomUUID(),
+                    name: newGameName,
+                    type: addMethod,
+                    cover: newGameCover || 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=800',
+                    favorite: false,
+                };
+
+                if (addMethod === 'url') {
+                    if (!newGameUrl) return;
+                    newGame.url = newGameUrl;
+                } else {
+                    if (!newGameFileContent) return;
+                    newGame.content = newGameFileContent;
+                }
+
+                setGames([...games, newGame]);
+                resetForm();
+                setIsAddModalOpen(false);
+            };
+
+            const handleFileUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                setFileName(file.name);
+                if (!newGameName) {
+                    setNewGameName(file.name.replace(/\.[^/.]+$/, ""));
+                }
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    setNewGameFileContent(event.target.result);
+                };
+                reader.readAsText(file);
+            };
+
+            const resetForm = () => {
+                setNewGameName('');
+                setNewGameUrl('');
+                setNewGameCover('');
+                setNewGameFileContent('');
+                setFileName('');
+                setAddMethod('url');
+            };
+
+            const requestRemoveGame = (game, e) => {
+                e.stopPropagation();
+                setGameToDelete(game);
+            };
+
+            const confirmRemoveGame = () => {
+                if (gameToDelete) {
+                    setGames(games.filter(g => g.id !== gameToDelete.id));
+                    setGameToDelete(null);
+                }
+            };
+
+            const toggleFavorite = (id, e) => {
+                e.stopPropagation();
+                setGames(games.map(g => g.id === id ? { ...g, favorite: !g.favorite } : g));
+            };
+
+            const sortedGames = [...games].sort((a, b) => {
+                if (a.favorite === b.favorite) return a.name.localeCompare(b.name);
+                return a.favorite ? -1 : 1;
+            });
+
+            const displayedGames = showFavoritesOnly 
+                ? sortedGames.filter(g => g.favorite) 
+                : sortedGames;
+
+            const glassPanelClass = "bg-white/10 backdrop-blur-2xl border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] transition-all duration-500";
+            const inputClass = "w-full bg-black/20 border border-white/10 text-white placeholder-gray-400 rounded-2xl p-4 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 hover:bg-black/30 hover:border-white/30 transition-all duration-300 shadow-inner";
+
+            return (
+                <div className="min-h-screen text-white overflow-hidden relative">
+                    <div className="absolute inset-0 z-0 bg-slate-900 overflow-hidden">
+                        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-purple-600/30 blur-[120px] animate-pulse"></div>
+                        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-600/30 blur-[150px] animate-pulse"></div>
+                    </div>
+
+                    <div className="relative z-10 h-screen flex flex-col">
+                        <header className="p-6 md:p-8 flex items-center justify-between max-w-7xl mx-auto w-full">
+                            <div className="flex items-center gap-4 group cursor-default">
+                                <div className={`p-4 rounded-[2rem] ${glassPanelClass} bg-gradient-to-br from-purple-500/50 to-blue-500/50 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500`}>
+                                    <Icon name="gamepad-2" size={32} />
+                                </div>
+                                <h1 className="text-4xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-400 group-hover:from-purple-300 group-hover:to-blue-300 transition-all duration-500">
+                                    VAULT
+                                </h1>
+                            </div>
+                            <div className="flex items-center gap-3 sm:gap-5">
+                                {games.length > 0 && (
+                                    <button
+                                        onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                                        className={`flex items-center gap-2 px-5 py-3.5 rounded-full backdrop-blur-md transition-all duration-500 border hover:-translate-y-1 ${
+                                            showFavoritesOnly 
+                                                ? 'bg-red-500/20 border-red-500/50 text-red-300 shadow-[0_8px_20px_rgba(239,68,68,0.4)]' 
+                                                : 'bg-white/5 hover:bg-white/15 border-white/10 text-gray-300'
+                                        }`}
+                                    >
+                                        <Icon name="heart" size={20} className={showFavoritesOnly ? "text-red-400" : ""} />
+                                        <span className="font-bold hidden sm:block">Favorites</span>
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => setIsAddModalOpen(true)}
+                                    className="group flex items-center gap-2 px-6 sm:px-8 py-3.5 rounded-full bg-gradient-to-r from-white/10 to-white/5 hover:from-purple-500/40 hover:to-blue-500/40 border border-white/20 backdrop-blur-xl transition-all duration-500 hover:scale-105"
+                                >
+                                    <Icon name="plus" size={22} className="group-hover:rotate-180 transition-transform duration-700" />
+                                    <span className="font-bold tracking-wide hidden sm:block">Add Game</span>
+                                </button>
+                            </div>
+                        </header>
+
+                        <main className="flex-1 overflow-y-auto p-6 md:p-8 max-w-7xl mx-auto w-full">
+                            {games.length === 0 ? (
+                                <div className="h-full flex flex-col items-center justify-center opacity-80 mt-10">
+                                    <Icon name="gamepad-2" size={100} className="mb-8 text-white/40" />
+                                    <h2 className="text-3xl font-light mb-4">Your Vault is Empty</h2>
+                                    <p className="text-gray-400 text-center">Add a game to get started!</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                                    {displayedGames.map((game) => (
+                                        <div
+                                            key={game.id}
+                                            onClick={() => setPlayingGame(game)}
+                                            className={`group relative rounded-[2.5rem] overflow-hidden cursor-pointer transition-all duration-500 hover:-translate-y-4 hover:shadow-[0_25px_50px_-12px_rgba(147,51,234,0.6)] border border-white/10 hover:border-purple-500/50 bg-white/5 backdrop-blur-xl`}
+                                        >
+                                            <div className="aspect-[4/3] w-full relative overflow-hidden">
+                                                <img src={game.cover} alt={game.name} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-125 opacity-80 group-hover:opacity-100" />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent"></div>
+                                                <div className="absolute top-4 right-4 z-20">
+                                                    <button
+                                                        onClick={(e) => toggleFavorite(game.id, e)}
+                                                        className={`p-3 rounded-full backdrop-blur-xl border transition-all duration-500 ${game.favorite ? 'bg-red-500/20 border-red-500/50' : 'bg-black/40 border-white/10'}`}
+                                                    >
+                                                        <Icon name="heart" size={20} className={game.favorite ? "text-red-500" : "text-white/70"} />
+                                                    </button>
+                                                </div>
+                                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                                                    <div className="p-5 rounded-full bg-purple-500/40 border border-white/20">
+                                                        <Icon name="play" size={36} className="ml-1" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="p-6 bg-gradient-to-b from-transparent to-black/40">
+                                                <h3 className="font-bold text-2xl mb-2 truncate">{game.name}</h3>
+                                                <div className="flex items-center justify-between text-sm text-gray-400">
+                                                    <span className="flex items-center gap-1.5 uppercase tracking-widest px-3 py-1 rounded-full bg-white/5">
+                                                        <Icon name={game.type === 'url' ? 'link' : 'file-code'} size={14} />
+                                                        {game.type === 'url' ? 'Link' : 'File'}
+                                                    </span>
+                                                </div>
+                                                <button 
+                                                    onClick={(e) => requestRemoveGame(game, e)}
+                                                    className="absolute bottom-5 right-5 p-2.5 rounded-full bg-red-500/10 text-red-400/70 hover:bg-red-500 hover:text-white transition-all duration-500 opacity-0 group-hover:opacity-100"
+                                                >
+                                                    <Icon name="trash-2" size={18} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </main>
+                    </div>
+
+                    {/* Add Modal */}
+                    {isAddModalOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xl">
+                            <div className={`relative w-full max-w-md p-8 rounded-[3rem] ${glassPanelClass}`}>
+                                <button onClick={() => setIsAddModalOpen(false)} className="absolute top-6 right-6 text-gray-400 hover:text-red-400 transition-all duration-300">
+                                    <Icon name="x" size={24} />
+                                </button>
+                                <h2 className="text-3xl font-black mb-8 flex items-center gap-3">Add to Vault</h2>
+                                <form onSubmit={handleAddGame} className="space-y-6">
+                                    <div className="flex p-1.5 rounded-2xl bg-black/40 border border-white/10">
+                                        <button type="button" onClick={() => setAddMethod('url')} className={`flex-1 py-3 rounded-xl transition-all ${addMethod === 'url' ? 'bg-purple-500/50 text-white' : 'text-gray-400'}`}>URL</button>
+                                        <button type="button" onClick={() => setAddMethod('file')} className={`flex-1 py-3 rounded-xl transition-all ${addMethod === 'file' ? 'bg-emerald-500/50 text-white' : 'text-gray-400'}`}>File</button>
+                                    </div>
+                                    <input type="text" value={newGameName} onChange={(e) => setNewGameName(e.target.value)} placeholder="Game Name" className={inputClass} required />
+                                    {addMethod === 'url' ? (
+                                        <input type="url" value={newGameUrl} onChange={(e) => setNewGameUrl(e.target.value)} placeholder="Game URL" className={inputClass} required />
+                                    ) : (
+                                        <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-white/10 rounded-2xl p-8 flex flex-col items-center cursor-pointer hover:bg-white/5 transition-all">
+                                            <input type="file" accept=".html" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
+                                            <Icon name="file-code" size={40} className="mb-2" />
+                                            <span>{fileName || 'Select HTML File'}</span>
+                                        </div>
+                                    )}
+                                    <input type="url" value={newGameCover} onChange={(e) => setNewGameCover(e.target.value)} placeholder="Cover Image URL (Optional)" className={inputClass} />
+                                    <button type="submit" className="w-full py-4 rounded-2xl bg-purple-600 hover:bg-purple-500 font-black tracking-widest transition-all">ADD GAME</button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Delete Confirmation */}
+                    {gameToDelete && (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xl">
+                            <div className={`relative w-full max-w-sm p-8 rounded-[3rem] ${glassPanelClass} text-center`}>
+                                <Icon name="alert-circle" size={48} className="mx-auto text-red-500 mb-4" />
+                                <h3 className="text-2xl font-black mb-3">Delete Game?</h3>
+                                <p className="text-gray-300 mb-8">Are you sure you want to remove "{gameToDelete.name}"?</p>
+                                <div className="flex gap-4">
+                                    <button onClick={() => setGameToDelete(null)} className="flex-1 py-3.5 rounded-2xl bg-white/5 hover:bg-white/15">Cancel</button>
+                                    <button onClick={confirmRemoveGame} className="flex-1 py-3.5 rounded-2xl bg-red-600 hover:bg-red-500 font-black">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Fullscreen Overlay */}
+                    {playingGame && (
+                        <div className="fixed inset-0 z-[100] bg-black flex flex-col">
+                            <div className="flex items-center justify-between p-4 bg-slate-900/90 backdrop-blur-2xl border-b border-white/10">
+                                <h2 className="text-xl font-bold flex items-center gap-3">
+                                    <Icon name="gamepad-2" size={24} className="text-purple-400" />
+                                    {playingGame.name}
+                                </h2>
+                                <button onClick={() => setPlayingGame(null)} className="px-6 py-2.5 bg-white/5 hover:bg-red-500/20 rounded-full flex items-center gap-2">
+                                    <Icon name="x" size={20} /> <span className="font-bold">Close</span>
+                                </button>
+                            </div>
+                            <div className="flex-1 bg-black relative">
+                                {playingGame.type === 'url' ? (
+                                    <iframe src={playingGame.url} className="absolute inset-0 w-full h-full border-none" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" allowFullScreen />
+                                ) : (
+                                    <iframe srcDoc={playingGame.content} className="absolute inset-0 w-full h-full border-none bg-white" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" allowFullScreen />
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
