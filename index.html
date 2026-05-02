@@ -259,7 +259,12 @@
                                     </div>
                                     <input type="text" value={newGameName} onChange={(e) => setNewGameName(e.target.value)} placeholder="Game Name" className={inputClass} required />
                                     {addMethod === 'url' ? (
-                                        <input type="url" value={newGameUrl} onChange={(e) => setNewGameUrl(e.target.value)} placeholder="Game URL" className={inputClass} required />
+                                        <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                                            <input type="url" value={newGameUrl} onChange={(e) => setNewGameUrl(e.target.value)} placeholder="Game Embed URL (e.g., Scratch embed)" className={inputClass} required />
+                                            <span className="text-xs text-red-300/90 mt-2 ml-2 block leading-relaxed">
+                                                <strong>Note:</strong> Standard website links might show up blank! Make sure to use the specific "Embed" link for the game.
+                                            </span>
+                                        </div>
                                     ) : (
                                         <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-white/10 rounded-2xl p-8 flex flex-col items-center cursor-pointer hover:bg-white/5 transition-all">
                                             <input type="file" accept=".html" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
@@ -291,21 +296,21 @@
 
                     {/* Fullscreen Overlay */}
                     {playingGame && (
-                        <div className="fixed inset-0 z-[100] bg-black flex flex-col">
+                        <div className="fixed inset-0 z-[100] bg-black flex flex-col animate-in zoom-in-95 duration-300">
                             <div className="flex items-center justify-between p-4 bg-slate-900/90 backdrop-blur-2xl border-b border-white/10">
                                 <h2 className="text-xl font-bold flex items-center gap-3">
                                     <Icon name="gamepad-2" size={24} className="text-purple-400" />
                                     {playingGame.name}
                                 </h2>
-                                <button onClick={() => setPlayingGame(null)} className="px-6 py-2.5 bg-white/5 hover:bg-red-500/20 rounded-full flex items-center gap-2">
-                                    <Icon name="x" size={20} /> <span className="font-bold">Close</span>
+                                <button onClick={() => setPlayingGame(null)} className="px-6 py-2.5 bg-red-500/20 hover:bg-red-500/40 border border-red-500/30 text-red-100 rounded-full flex items-center gap-2 transition-all group shadow-[0_0_15px_rgba(239,68,68,0.3)] hover:scale-105 active:scale-95">
+                                    <Icon name="log-out" size={20} className="group-hover:-translate-x-1 transition-transform" /> <span className="font-bold tracking-wide">Exit Game</span>
                                 </button>
                             </div>
                             <div className="flex-1 bg-black relative">
                                 {playingGame.type === 'url' ? (
-                                    <iframe src={playingGame.url} className="absolute inset-0 w-full h-full border-none" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" allowFullScreen />
+                                    <iframe src={playingGame.url} className="absolute inset-0 w-full h-full border-none" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock" allowFullScreen />
                                 ) : (
-                                    <iframe srcDoc={playingGame.content} className="absolute inset-0 w-full h-full border-none bg-white" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" allowFullScreen />
+                                    <iframe srcDoc={playingGame.content} className="absolute inset-0 w-full h-full border-none bg-white" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock" allowFullScreen />
                                 )}
                             </div>
                         </div>
