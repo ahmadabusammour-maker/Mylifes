@@ -43,16 +43,20 @@
     <script type="text/babel">
         const { useState, useRef, useEffect } = React;
         
-        // Custom Hook to use Lucide Icons in the browser build
+        // Custom Hook to use Lucide Icons in the browser build safely
         const Icon = ({ name, size = 24, className = "", fill = "none" }) => {
             const iconRef = useRef(null);
+            
             useEffect(() => {
-                if (window.lucide) {
-                    window.lucide.createIcons();
+                // By injecting the icon inside a span, we prevent React from losing track 
+                // of the DOM nodes when Lucide replaces the <i> tag with an <svg> tag.
+                if (iconRef.current && window.lucide) {
+                    iconRef.current.innerHTML = `<i data-lucide="${name}" class="${className}" fill="${fill}" style="width: ${size}px; height: ${size}px;"></i>`;
+                    window.lucide.createIcons({ root: iconRef.current });
                 }
-            }, [name]);
+            }, [name, size, className, fill]);
 
-            return <i data-lucide={name} style={{ width: size, height: size }} className={className} fill={fill}></i>;
+            return <span ref={iconRef} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}></span>;
         };
 
         function App() {
