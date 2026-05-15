@@ -2,633 +2,1579 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vault Network</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a855f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect width='20' height='12' x='2' y='6' rx='2'/><path d='M9 12h.01'/><path d='M15 12h.01'/><path d='M12 15h.01'/><path d='M12 9h.01'/></svg>">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MyLife - Life Simulator</title>
+    
+    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Load Phosphor Icons (replaces lucide-react module) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Load React and ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Load Babel for JSX translation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800;900&display=swap');
+        /* Custom Styles to replace external CSS dependencies */
+        body { margin: 0; background-color: #000; overflow: hidden; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
         
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            background-color: #020617; /* Very deep slate/black */
-            margin: 0; 
-            overflow: hidden; 
-            color: white;
+        /* Smooth pop-up animation */
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(1rem); }
+            to { opacity: 1; transform: translateY(0); }
         }
-
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
-
-        @keyframes float { 
-            0% { transform: translateY(0px) rotate(0deg) scale(1); } 
-            50% { transform: translateY(-30px) rotate(5deg) scale(1.05); } 
-            100% { transform: translateY(0px) rotate(0deg) scale(1); } 
-        }
-        .animate-float { animation: float 12s ease-in-out infinite; }
-        .animate-float-delayed { animation: float 15s ease-in-out infinite; animation-delay: -5s; }
+        .animate-in { animation: slideIn 0.2s ease-out forwards; }
         
-        /* The Ultimate Glass Panel */
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(32px);
-            -webkit-backdrop-filter: blur(32px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-top: 1px solid rgba(255, 255, 255, 0.3);
-            border-left: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
-        }
-
-        /* 3D Inner Shadow Inputs */
-        .neo-input {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: inset 0 2px 15px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .neo-input:hover {
-            background: rgba(255, 255, 255, 0.06);
-            border-color: rgba(255, 255, 255, 0.25);
-        }
-
-        .neo-input:focus {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(168, 85, 247, 0.6);
-            box-shadow: inset 0 2px 15px rgba(0, 0, 0, 0.3), 0 0 25px rgba(168, 85, 247, 0.4);
-            outline: none;
-        }
-
-        .neo-input.blue-focus:focus {
-            border-color: rgba(59, 130, 246, 0.6);
-            box-shadow: inset 0 2px 15px rgba(0, 0, 0, 0.3), 0 0 25px rgba(59, 130, 246, 0.4);
-        }
+        /* Glassmorphism helpers */
+        .glass-panel { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
     </style>
 </head>
-<body>
+<body class="bg-black text-gray-100 antialiased">
+    
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useRef, useEffect, useMemo } = React;
-        
-        const API_URL = "https://script.google.com/macros/s/AKfycbzoxl1z9iR9dxpbDID1_5vOI_go3fr4zN7MDyM5D2oDMYXnuDJM7qsZ_nfXmczZFNZu/exec";
+        const { useState, useEffect, useRef } = React;
 
-        const Icon = ({ name, size = 24, className = "" }) => {
-            const iconRef = useRef(null);
-            useEffect(() => {
-                if (iconRef.current && window.lucide) {
-                    iconRef.current.innerHTML = `<i data-lucide="${name}" class="${className}" style="width: ${size}px; height: ${size}px;"></i>`;
-                    window.lucide.createIcons({ root: iconRef.current });
-                }
-            }, [name, size, className]);
-            return <span ref={iconRef} className="inline-flex items-center justify-center"></span>;
+        // --- Icon Adapter (Maps the previous Lucide icons to Phosphor icons) ---
+        const createIcon = (phClass) => ({ size = 24, className = "" }) => <i className={`ph ${phClass} ${className}`} style={{ fontSize: size }}></i>;
+        
+        const Heart = createIcon("ph-heart");
+        const Smile = createIcon("ph-smiley");
+        const Brain = createIcon("ph-brain");
+        const Sparkles = createIcon("ph-sparkle");
+        const Activity = createIcon("ph-activity");
+        const Briefcase = createIcon("ph-briefcase");
+        const GraduationCap = createIcon("ph-graduation-cap");
+        const DollarSign = createIcon("ph-currency-dollar");
+        const Dumbbell = createIcon("ph-barbell");
+        const Stethoscope = createIcon("ph-stethoscope");
+        const ChevronRight = createIcon("ph-caret-right");
+        const RefreshCw = createIcon("ph-arrows-clockwise");
+        const AlertCircle = createIcon("ph-warning-circle");
+        const Settings = createIcon("ph-gear");
+        const MapPin = createIcon("ph-map-pin");
+        const ArrowLeft = createIcon("ph-arrow-left");
+        const Users = createIcon("ph-users");
+        const Home = createIcon("ph-house");
+        const Car = createIcon("ph-car");
+        const BookOpen = createIcon("ph-book-open");
+        const Crown = createIcon("ph-crown");
+        const HeartHandshake = createIcon("ph-handshake");
+        const MessageCircle = createIcon("ph-chat-circle");
+        const ThumbsUp = createIcon("ph-thumbs-up");
+        const ThumbsDown = createIcon("ph-thumbs-down");
+        const Baby = createIcon("ph-baby");
+        const Dog = createIcon("ph-dog");
+        const Plane = createIcon("ph-airplane");
+        const Book = createIcon("ph-book");
+        const Smartphone = createIcon("ph-device-mobile");
+        const IdCard = createIcon("ph-identification-card");
+        const UserPlus = createIcon("ph-user-plus");
+        const FirstAid = createIcon("ph-first-aid");
+        
+        const Trophy = createIcon("ph-trophy");
+        const Basketball = createIcon("ph-basketball");
+        const Baseball = createIcon("ph-baseball");
+        const SoccerBall = createIcon("ph-soccer-ball");
+        const Medal = createIcon("ph-medal");
+
+        // --- Game Data & Regional Names ---
+        const REGIONAL_NAMES = {
+          English: {
+            m: ["Liam", "Noah", "Oliver", "James", "William", "Henry", "Arthur", "Leo", "Jack", "Charlie", "Thomas", "George", "Oscar", "Ethan", "Jacob", "Michael", "Alexander", "Daniel", "Matthew", "Samuel", "David", "Joseph", "Luke", "John", "Owen", "Wyatt", "Dylan", "Isaac", "Gabriel", "Julian"],
+            f: ["Olivia", "Emma", "Charlotte", "Amelia", "Sophia", "Elizabeth", "Victoria", "Mia", "Ava", "Isabella", "Evelyn", "Harper", "Abigail", "Emily", "Madison", "Avery", "Lily", "Ella", "Chloe", "Grace", "Zoe", "Nora", "Hannah", "Lucy", "Anna", "Samantha", "Maya", "Sarah", "Violet"],
+            l: ["Smith", "Johnson", "Williams", "Brown", "Jones", "Miller", "Davis", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin", "Thompson", "Garcia", "Martinez", "Robinson", "Clark", "Rodriguez", "Lewis", "Lee", "Walker", "Hall", "Allen", "Young"]
+          },
+          Spanish: {
+            m: ["Mateo", "Santiago", "Leonardo", "Diego", "Alejandro", "Carlos", "Gabriel", "Daniel", "Tomas", "Lucas", "Nicolas", "Martin", "Samuel", "Emilio", "Joaquin", "Juan", "Pedro", "Miguel", "Javier", "Jose", "Luis", "Rafael", "Fernando", "Jorge", "Ricardo"],
+            f: ["Sofia", "Isabella", "Valentina", "Camila", "Valeria", "Lucia", "Elena", "Mariana", "Gabriela", "Daniela", "Maria", "Victoria", "Martina", "Juliana", "Paula", "Catalina", "Antonia", "Sara", "Ana", "Carmen", "Rosa", "Marta", "Clara", "Teresa", "Laura"],
+            l: ["Garcia", "Martinez", "Rodriguez", "Lopez", "Hernandez", "Perez", "Gomez", "Gonzalez", "Diaz", "Alvarez", "Fernandez", "Ruiz", "Torres", "Suarez", "Rios", "Navarro", "Morales", "Ortiz", "Castillo", "Reyes", "Romero", "Mendoza", "Flores", "Aguilar"]
+          },
+          Asian: {
+            m: ["Wei", "Kenji", "Hiroshi", "Min-jun", "Ji-hoon", "Chen", "Yuki", "Ren", "Haruto", "Sota", "Yuto", "Jun", "Jian", "Bao", "Dong", "Seo-jun", "Do-yoon", "Takahiro", "Kaito", "Kazuki", "Riku", "Sho", "Taro", "Ryu", "Akira", "Shin"],
+            f: ["Mei", "Sakura", "Hina", "Ji-woo", "Seo-yeon", "Ling", "Yuna", "Aoi", "Rin", "Mio", "Yui", "Jia", "Li", "Xia", "Ha-eun", "Ji-min", "Ayumi", "Kaori", "Natsuki", "Emi", "Keiko", "Mayumi", "Yoko", "Mika", "Sora"],
+            l: ["Wang", "Li", "Zhang", "Sato", "Suzuki", "Kim", "Park", "Choi", "Liu", "Chen", "Yang", "Zhao", "Wu", "Zhou", "Takahashi", "Tanaka", "Watanabe", "Ito", "Yamamoto", "Nakamura", "Kobayashi", "Jeong", "Kang", "Cho", "Yoon"]
+          },
+          Arabic: {
+            m: ["Mohammed", "Ahmed", "Ali", "Omar", "Youssef", "Tariq", "Zayn", "Amir", "Ibrahim", "Hassan", "Hussein", "Khalid", "Mustafa", "Abdullah", "Hamza", "Zaid", "Malik", "Bilal", "Kareem", "Jamal", "Nasser", "Faisal", "Mahmoud"],
+            f: ["Fatima", "Aisha", "Maryam", "Noor", "Sara", "Layla", "Zara", "Amira", "Zahra", "Salma", "Hana", "Lina", "Maha", "Nadia", "Yasmine", "Rania", "Farah", "Leen", "Aaliyah", "Hala", "Safa", "Marwa", "Jana"],
+            l: ["Khan", "Ali", "Rahman", "Hassan", "Ibrahim", "Ahmad", "Mahmoud", "Abdullah", "Saleh", "Saeed", "Mansour", "Hussain", "Nasser", "Khalil", "Sulaiman", "Farooq", "Tariq", "Qasim", "Sheikh", "Malik"]
+          }
         };
 
+        const COUNTRY_REGIONS = {
+          "Mexico": "Spanish", "Spain": "Spanish", "Argentina": "Spanish", "Colombia": "Spanish", "Peru": "Spanish", "Chile": "Spanish", "Costa Rica": "Spanish",
+          "China": "Asian", "Japan": "Asian", "South Korea": "Asian", "Vietnam": "Asian", "Thailand": "Asian", "Singapore": "Asian",
+          "Egypt": "Arabic", "Saudi Arabia": "Arabic", "United Arab Emirates": "Arabic", "Morocco": "Arabic", "Iran": "Arabic", "Iraq": "Arabic", "Pakistan": "Arabic"
+        };
+
+        const COUNTRIES = ["Afghanistan", "Albania", "Algeria", "Argentina", "Australia", "Austria", "Bahamas", "Bangladesh", "Belgium", "Brazil", "Canada", "Chile", "China", "Colombia", "Costa Rica", "Cuba", "Czechia", "Denmark", "Egypt", "Finland", "France", "Germany", "Greece", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan", "Kenya", "Malaysia", "Mexico", "Morocco", "Netherlands", "New Zealand", "Nigeria", "Norway", "Pakistan", "Peru", "Philippines", "Poland", "Portugal", "Russia", "Saudi Arabia", "Singapore", "South Africa", "South Korea", "Spain", "Sweden", "Switzerland", "Thailand", "Turkey", "Ukraine", "United Arab Emirates", "United Kingdom", "United States of America", "Vietnam"];
+
+        const MAJORS = [
+          "Accounting", "Biology", "Business", "Computer Science", 
+          "Economics", "Education", "Engineering", "English", 
+          "Finance", "History", "Nursing", "Political Science", "Pre-Med"
+        ];
+
+        const JOBS = [
+          { title: "Paper Route", reqDegree: null, minSmarts: 0, minAge: 10, maxAge: 18, salary: 800 },
+          { title: "Babysitter", reqDegree: null, minSmarts: 10, minAge: 13, maxAge: 25, salary: 2000 },
+          { title: "Fast Food Worker", reqDegree: null, minSmarts: 0, minAge: 16, salary: 18000 },
+          { title: "Retail Associate", reqDegree: null, minSmarts: 10, minAge: 18, salary: 22000 },
+          { title: "Administrative Assistant", reqDegree: ["Community College", "University"], minSmarts: 40, minAge: 18, salary: 45000 },
+          { title: "Registered Nurse", reqDegree: ["Nursing"], minSmarts: 60, minAge: 20, salary: 75000 },
+          { title: "Teacher", reqDegree: ["Education", "English", "History"], minSmarts: 60, minAge: 22, salary: 65000 },
+          { title: "Accountant", reqDegree: ["Accounting", "Finance"], minSmarts: 70, minAge: 22, salary: 70000 },
+          { title: "Financial Analyst", reqDegree: ["Finance", "Economics", "Business"], minSmarts: 75, minAge: 22, salary: 85000 },
+          { title: "Software Engineer", reqDegree: ["Computer Science", "Engineering"], minSmarts: 75, minAge: 22, salary: 105000 },
+          { title: "Lawyer", reqDegree: ["Law School"], minSmarts: 85, minAge: 25, salary: 140000 },
+          { title: "Doctor", reqDegree: ["Medical School"], minSmarts: 90, minAge: 26, salary: 220000 },
+          { title: "Professor", reqDegree: ["Doctorate (PhD)"], minSmarts: 90, minAge: 28, salary: 120000 },
+          { title: "CEO", reqDegree: ["Business School", "Graduate School"], minSmarts: 95, minAge: 30, salary: 450000 },
+        ];
+
+        const CAR_DEALER = [
+          { name: "Beat-up 1999 Sedan", value: 2000, condition: "Poor" },
+          { name: "Used 2010 Hatchback", value: 6500, condition: "Fair" },
+          { name: "New Economy Car", value: 24000, condition: "New" },
+          { name: "Luxury SUV", value: 65000, condition: "New" },
+          { name: "Italian Sports Car", value: 150000, condition: "New" }
+        ];
+
+        const REAL_ESTATE = [
+          { name: "Tiny Trailer", value: 25000 },
+          { name: "1-Bedroom Condo", value: 180000 },
+          { name: "Suburban Family Home", value: 450000 },
+          { name: "Luxury Penthouse", value: 1200000 },
+          { name: "Massive Mansion", value: 5500000 },
+          { name: "Royal Castle", value: 25000000 }
+        ];
+
+        const VACATION_SPOTS = [
+          { name: "Cancun, Mexico", baseCost: 500 },
+          { name: "Hawaii, USA", baseCost: 800 },
+          { name: "Rio de Janeiro, Brazil", baseCost: 1100 },
+          { name: "Paris, France", baseCost: 1200 },
+          { name: "Rome, Italy", baseCost: 1300 },
+          { name: "Cairo, Egypt", baseCost: 1400 },
+          { name: "Tokyo, Japan", baseCost: 1500 },
+          { name: "Sydney, Australia", baseCost: 2000 },
+          { name: "Maldives", baseCost: 2500 }
+        ];
+
+        const FLIGHT_CLASSES = [
+          { name: "Economy", multiplier: 1, hap: 20, heal: 5 },
+          { name: "Business", multiplier: 3, hap: 40, heal: 10 },
+          { name: "First Class", multiplier: 8, hap: 80, heal: 20 }
+        ];
+
+        const PRO_TEAMS = {
+            "Basketball": ["New York Knights", "Los Angeles Stars", "Chicago Bruisers", "Miami Tropics", "Texas Titans", "Boston Shamrocks", "Toronto Huskies", "Golden State Surf"],
+            "Baseball": ["New York Empires", "Boston Patriots", "LA Sabers", "Chicago Winds", "Texas Longhorns", "Miami Sun", "Seattle Rain", "Atlanta Peaches"],
+            "Soccer": ["London Royals", "Madrid Kings", "Paris Lights", "Munich Eagles", "LA Galaxy", "NY City FC", "Rome Gladiators", "Tokyo United"]
+        };
+
+        const ILLNESSES = [
+            { name: "Common Cold", severity: 2, cureCost: 50, cureChance: 98 },
+            { name: "Stomach Bug", severity: 4, cureCost: 80, cureChance: 95 },
+            { name: "The Flu", severity: 6, cureCost: 150, cureChance: 90 },
+            { name: "Food Poisoning", severity: 8, cureCost: 300, cureChance: 95 },
+            { name: "Bacterial Infection", severity: 12, cureCost: 800, cureChance: 85 },
+            { name: "Whooping Cough", severity: 15, cureCost: 1200, cureChance: 80 },
+            { name: "Heart Disease", severity: 20, cureCost: 15000, cureChance: 40 },
+            { name: "Cancer", severity: 25, cureCost: 25000, cureChance: 25 }
+        ];
+
+        const generateId = () => Math.random().toString(36).substr(2, 9);
+
+        // --- Main Application ---
         function App() {
-            const [games, setGames] = useState([]);
-            const [isLoaded, setIsLoaded] = useState(false);
-            const [view, setView] = useState('library'); 
-            const [communityVaults, setCommunityVaults] = useState([]);
+          const [appState, setAppState] = useState('start'); 
+          const [activeScreen, setActiveScreen] = useState('main'); 
+          const [customForm, setCustomForm] = useState({ firstName: '', lastName: '', gender: 'Male', country: 'United States of America', city: '', isRoyal: false });
+          
+          const [enrollmentProcess, setEnrollmentProcess] = useState(null);
+          const [selectedMajor, setSelectedMajor] = useState(MAJORS[0]);
+          const [selectedDest, setSelectedDest] = useState(VACATION_SPOTS[0]);
+          const [selectedClass, setSelectedClass] = useState(FLIGHT_CLASSES[0]);
+          const [vacationCompanions, setVacationCompanions] = useState([]);
+          const [character, setCharacter] = useState(null);
+          const [stats, setStats] = useState({ health: 0, happiness: 0, smarts: 0, looks: 0 });
+          const [logs, setLogs] = useState([]);
+          const [job, setJob] = useState(null);
+          const [education, setEducation] = useState({ current: null, degrees: [] });
+          const [relationships, setRelationships] = useState([]);
+          const [assets, setAssets] = useState([]);
+          const [popupAlert, setPopupAlert] = useState(null);
+          
+          const logContainerRef = useRef(null);
+
+          useEffect(() => {
+            if (logContainerRef.current) {
+              logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+            }
+          }, [logs]);
+
+          const generatePerson = (role, charAge, lastName, charCountry, fixedGender = null) => {
+            const regionName = COUNTRY_REGIONS[charCountry] || "English";
+            const region = REGIONAL_NAMES[regionName];
+            const gender = fixedGender || (Math.random() > 0.5 ? 'Male' : 'Female');
             
-            // Network Profile State
-            const [vaultName, setVaultName] = useState('');
-            const [isNetworkModalOpen, setIsNetworkModalOpen] = useState(false);
-            const [isPublishing, setIsPublishing] = useState(false);
-            const [isDeleting, setIsDeleting] = useState(false);
-            const [isLoadingCommunity, setIsLoadingCommunity] = useState(false);
+            let age = 0;
+            if (['Mother', 'Father'].includes(role)) {
+                age = charAge + 20 + Math.floor(Math.random() * 15);
+            } else if (role === 'Partner' || role === 'Friend') {
+                age = charAge + Math.floor(Math.random() * 5) - 2;
+                if (charAge >= 18 && age < 18) age = 18;
+                if (charAge < 18 && age >= 18) age = 17;
+            } else if (['Brother', 'Sister'].includes(role)) {
+                age = charAge + Math.floor(Math.random() * 10) + 1;
+            } else if (role === 'Coach') {
+                age = charAge + 20 + Math.floor(Math.random() * 20);
+            } else if (role === 'Teammate') {
+                age = charAge + Math.floor(Math.random() * 3) - 1;
+            }
             
-            const [searchQuery, setSearchQuery] = useState('');
-            const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-            const [playingGame, setPlayingGame] = useState(null);
-            const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-            const [gameToDelete, setGameToDelete] = useState(null);
+            const finalLastName = ['Friend', 'Partner', 'Teammate', 'Coach'].includes(role)
+                ? region.l[Math.floor(Math.random() * region.l.length)] 
+                : lastName;
 
-            // Add Game State
-            const [addMethod, setAddMethod] = useState('url'); 
-            const [newGameName, setNewGameName] = useState('');
-            const [newGameUrl, setNewGameUrl] = useState('');
-            const [newGameCover, setNewGameCover] = useState('');
-            const [newGameFileContent, setNewGameFileContent] = useState(null);
-            const [fileName, setFileName] = useState('');
-            const [blobUrl, setBlobUrl] = useState(null);
+            return {
+              id: generateId(),
+              type: role,
+              name: `${region[gender === 'Male' ? 'm' : 'f'][Math.floor(Math.random() * region[gender === 'Male' ? 'm' : 'f'].length)]} ${finalLastName}`,
+              gender: gender,
+              age: Math.max(0, age),
+              relationshipLevel: Math.floor(Math.random() * 30) + 60 
+            };
+          };
+
+          const startNewLife = (isCustom = false) => {
+            let firstName, lastName, gender, country, city, isRoyal;
+
+            if (isCustom) {
+              country = customForm.country;
+              const region = REGIONAL_NAMES[COUNTRY_REGIONS[country] || "English"];
+              gender = customForm.gender;
+              firstName = customForm.firstName.trim() || region[gender === 'Male' ? 'm' : 'f'][0];
+              lastName = customForm.lastName.trim() || region.l[0];
+              city = customForm.city.trim() || "The Capital";
+              isRoyal = customForm.isRoyal;
+            } else {
+              country = COUNTRIES[Math.floor(Math.random() * COUNTRIES.length)];
+              const region = REGIONAL_NAMES[COUNTRY_REGIONS[country] || "English"];
+              gender = Math.random() > 0.5 ? "Male" : "Female";
+              firstName = region[gender === 'Male' ? 'm' : 'f'][Math.floor(Math.random() * region[gender === 'Male' ? 'm' : 'f'].length)];
+              lastName = region.l[Math.floor(Math.random() * region.l.length)];
+              city = "Hometown";
+              isRoyal = Math.random() < 0.02; 
+            }
             
-            const fileInputRef = useRef(null);
+            setCharacter({
+              name: `${firstName} ${lastName}`,
+              gender, country, city,
+              age: 0,
+              bankBalance: isRoyal ? 1000000 : 0,
+              isAlive: true,
+              causeOfDeath: null,
+              royalStatus: isRoyal ? (gender === 'Male' ? 'Prince' : 'Princess') : null,
+              hasDriversLicense: false,
+              hasSocialMedia: false,
+              followers: 0,
+              sports: { level: 'None', sport: null, team: null, performance: 0, coach: null, roster: [] },
+              illnesses: []
+            });
+        
+            setStats({
+              health: Math.floor(Math.random() * 30) + 70,
+              happiness: Math.floor(Math.random() * 30) + 70,
+              smarts: Math.floor(Math.random() * 70) + 30,
+              looks: Math.floor(Math.random() * 70) + 30,
+              athleticism: Math.floor(Math.random() * 70) + 30,
+            });
 
-            // Persistence
-            useEffect(() => {
-                const init = async () => {
-                    const savedGames = await localforage.getItem('vault_games') || [];
-                    const savedName = await localforage.getItem('vault_name') || '';
-                    setGames(savedGames);
-                    setVaultName(savedName);
-                    setIsLoaded(true);
-                };
-                init();
-            }, []);
+            const isSameSexParents = Math.random() < 0.10;
+            let p1Gender = Math.random() > 0.5 ? 'Male' : 'Female';
+            let p2Gender = isSameSexParents ? p1Gender : (p1Gender === 'Male' ? 'Female' : 'Male');
 
-            useEffect(() => {
-                if (isLoaded) {
-                    localforage.setItem('vault_games', games);
-                    localforage.setItem('vault_name', vaultName);
-                }
-            }, [games, vaultName, isLoaded]);
+            const parent1 = generatePerson(p1Gender === 'Male' ? 'Father' : 'Mother', 0, lastName, country, p1Gender);
+            const parent2 = generatePerson(p2Gender === 'Male' ? 'Father' : 'Mother', 0, lastName, country, p2Gender);
+            
+            const initialSiblings = [];
+            const numSiblings = Math.floor(Math.random() * 3); 
+            for (let i = 0; i < numSiblings; i++) {
+                const sibGender = Math.random() > 0.5 ? 'Male' : 'Female';
+                initialSiblings.push(generatePerson(sibGender === 'Male' ? 'Brother' : 'Sister', 0, lastName, country, sibGender));
+            }
 
-            useEffect(() => {
-                if (playingGame?.type === 'file' && playingGame.content) {
-                    let url;
-                    if (playingGame.content instanceof Blob) {
-                        url = URL.createObjectURL(playingGame.content);
-                    } else {
-                        const blob = new Blob([playingGame.content], { type: 'text/html;charset=utf-8' });
-                        url = URL.createObjectURL(blob);
+            setRelationships([parent1, parent2, ...initialSiblings]);
+            setJob(null);
+            setEducation({ current: null, degrees: [] });
+            setAssets([]);
+            setEnrollmentProcess(null);
+            setVacationCompanions([]);
+            setPopupAlert(null);
+            setActiveScreen('main');
+            setAppState('playing');
+            
+            const royalText = isRoyal ? ` as a ${gender === 'Male' ? 'Prince' : 'Princess'}` : '';
+            setLogs([{ id: generateId(), year: 0, text: `You were born${royalText} in ${city}, ${country}. Your parents are ${parent1.name} and ${parent2.name}.`, type: 'neutral' }]);
+          };
+
+          const continueAsChild = (child) => {
+            let inheritedRoyal = null;
+            if (character.royalStatus) {
+                inheritedRoyal = child.gender === 'Male' ? 'King' : 'Queen'; 
+            }
+
+            const newChar = {
+                name: child.name,
+                gender: child.gender,
+                country: character.country,
+                city: character.city,
+                age: child.age,
+                bankBalance: character.bankBalance, 
+                isAlive: true,
+                causeOfDeath: null,
+                royalStatus: inheritedRoyal,
+                hasDriversLicense: child.age >= 16 ? Math.random() > 0.5 : false,
+                hasSocialMedia: false,
+                followers: 0,
+                sports: { level: 'None', sport: null, team: null, performance: 0, coach: null, roster: [] },
+                illnesses: []
+            };
+
+            const newRelations = relationships
+                .filter(r => r.id !== child.id) 
+                .map(r => {
+                    let newType = r.type;
+                    if (['Spouse', 'Partner', 'Fiancé(e)'].includes(r.type)) {
+                        newType = r.gender === 'Male' ? 'Father' : 'Mother';
+                    } else if (['Son', 'Daughter'].includes(r.type)) {
+                        newType = r.gender === 'Male' ? 'Brother' : 'Sister';
+                    } else if (['Mother', 'Father'].includes(r.type)) {
+                        newType = r.gender === 'Male' ? 'Grandfather' : 'Grandmother';
+                    } else if (['Brother', 'Sister'].includes(r.type)) {
+                        newType = r.gender === 'Male' ? 'Uncle' : 'Aunt';
+                    } else if (['Grandfather', 'Grandmother', 'Uncle', 'Aunt'].includes(r.type)) {
+                        return null; 
                     }
-                    setBlobUrl(url);
-                    return () => URL.revokeObjectURL(url);
+                    return { ...r, type: newType };
+                }).filter(Boolean); 
+
+            setRelationships(newRelations);
+            setCharacter(newChar);
+            
+            setStats({ 
+                health: Math.floor(Math.random() * 30) + 70, 
+                happiness: Math.floor(Math.random() * 30) + 70, 
+                smarts: Math.floor(Math.random() * 70) + 30, 
+                looks: Math.floor(Math.random() * 70) + 30,
+                athleticism: Math.floor(Math.random() * 70) + 30
+            });
+        
+            setEducation({ 
+                current: child.age >= 6 && child.age < 18 ? "High School" : null, 
+                degrees: child.age >= 18 ? ["High School"] : [] 
+            });
+            
+            setJob(null);
+            setEnrollmentProcess(null);
+            setVacationCompanions([]);
+            setPopupAlert(null);
+            setLogs([{ id: generateId(), year: child.age, text: `Following the tragic passing of your parent, you are now playing as ${child.name}, continuing your family's legacy. You inherited $${character.bankBalance.toLocaleString()} and all their assets!`, type: 'good' }]);
+            setActiveScreen('main');
+          };
+
+          const addLog = (text, type = 'neutral') => {
+            setLogs(prev => [...prev, { id: generateId(), year: character ? character.age : 0, text, type }]);
+          };
+
+          const updateStat = (statName, amount) => {
+            setStats(prev => ({ ...prev, [statName]: Math.min(100, Math.max(0, prev[statName] + amount)) }));
+          };
+
+          const updateBank = (amount) => {
+            setCharacter(prev => ({ ...prev, bankBalance: prev.bankBalance + amount }));
+          };
+
+          const updateRelationship = (id, amount) => {
+            setRelationships(prev => prev.map(r => r.id === id ? { ...r, relationshipLevel: Math.min(100, Math.max(0, r.relationshipLevel + amount)) } : r));
+          };
+
+          const updateMultipleRelationships = (ids, amount) => {
+            setRelationships(prev => prev.map(r => ids.includes(r.id) ? { ...r, relationshipLevel: Math.min(100, Math.max(0, r.relationshipLevel + amount)) } : r));
+          };
+
+          const ageUp = () => {
+            if (!character.isAlive) return;
+
+            setActiveScreen('main');
+            const newAge = character.age + 1;
+            let netIncome = 0;
+            
+            addLog(`--- Age ${newAge} ---`, "header");
+
+            if (newAge === 6) {
+              setEducation(prev => ({ ...prev, current: "High School" }));
+              addLog("You started Elementary School.", "neutral");
+            } else if (newAge === 18 && education.current === "High School") {
+              setEducation(prev => ({ current: null, degrees: [...prev.degrees, "High School"] }));
+              addLog("You graduated from High School!", "good");
+              if (job && job.maxAge && newAge > job.maxAge) {
+                  addLog(`You are too old for your job as a ${job.title} and had to leave.`, "neutral");
+                  setJob(null);
+              }
+            }
+
+            if (newAge >= 6 && newAge < 18) {
+                const parentsAlive = relationships.filter(r => (r.type === 'Mother' || r.type === 'Father') && !r.dead).length;
+                if (parentsAlive > 0 && Math.random() > 0.3) {
+                    const allowance = Math.floor(Math.random() * 40) + 10;
+                    updateBank(allowance);
+                    addLog(`Your parents gave you $${allowance} for your allowance.`, "good");
                 }
-                setBlobUrl(null);
-            }, [playingGame]);
+            }
 
-            const fetchCommunity = async () => {
-                setView('community');
-                setIsLoadingCommunity(true);
-                try {
-                    const targetUrl = API_URL + "?t=" + Date.now();
-                    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-                    const res = await fetch(proxyUrl);
-                    const data = await res.json();
-                    const validVaults = Array.isArray(data) ? data.filter(v => v.games && v.games.length > 0 && v.userName !== 'Deleted Vault') : [];
-                    setCommunityVaults(validVaults);
-                } catch (e) { 
-                    setCommunityVaults([]);
-                } finally {
-                    setIsLoadingCommunity(false);
+            if (job) {
+              netIncome += job.salary;
+              addLog(`You earned $${job.salary.toLocaleString()} as a ${job.title}.`, "good");
+              updateStat('health', -2); 
+            }
+
+            if (character.royalStatus) {
+              const royalPay = character.royalStatus === 'King' || character.royalStatus === 'Queen' ? 5000000 : 1500000;
+              netIncome += royalPay;
+              addLog(`You received $${royalPay.toLocaleString()} from your royal duties.`, "good");
+              updateStat('looks', 2); 
+            }
+
+            if (character.hasSocialMedia) {
+                let followerGrowth = Math.floor(character.followers * (Math.random() * 0.1)); 
+                if (stats.looks > 80 || stats.happiness > 80) followerGrowth += Math.floor(Math.random() * 500);
+                
+                const newFollowers = character.followers + followerGrowth;
+                setCharacter(prev => ({ ...prev, followers: newFollowers }));
+
+                if (newFollowers > 100000) {
+                    const adRevenue = Math.floor(newFollowers * 0.05); 
+                    netIncome += adRevenue;
+                    addLog(`Your social media presence earned you $${adRevenue.toLocaleString()} in sponsorships!`, "good");
                 }
-            };
+            }
 
-            const publishVault = async () => {
-                if (!vaultName.trim()) return alert("Please enter a Vault Name!");
-                let vaultId = await localforage.getItem('vault_id') || crypto.randomUUID();
-                await localforage.setItem('vault_id', vaultId);
-                setIsPublishing(true);
-                const shareableGames = games.filter(g => g.type === 'url').map(g => ({ name: g.name, url: g.url, cover: g.cover }));
-                try {
-                    await fetch(API_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify({ vaultId, userName: vaultName, games: shareableGames })
-                    });
-                    alert("Vault Published!");
-                    setIsNetworkModalOpen(false);
-                } catch (e) { console.error(e); }
-                setIsPublishing(false);
-            };
+            if (newAge >= 18) {
+              let expenses = Math.floor(netIncome * 0.2); 
+              assets.forEach(asset => {
+                expenses += Math.floor(asset.value * 0.05); 
+              });
+              if (expenses > 0) {
+                 netIncome -= expenses;
+                 addLog(`You paid $${expenses.toLocaleString()} in taxes and living expenses.`, "bad");
+              }
+            }
 
-            const deleteSharedVault = async () => {
-                let vaultId = await localforage.getItem('vault_id');
-                if (!vaultId) return;
-                if (!confirm("Delete your public vault?")) return;
-                setIsDeleting(true);
-                try {
-                    await fetch(API_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        body: JSON.stringify({ vaultId, userName: 'Deleted Vault', games: [] })
-                    });
-                    setVaultName('');
-                    alert("Vault Unlisted.");
-                    setIsNetworkModalOpen(false);
-                } catch (e) { console.error(e); }
-                setIsDeleting(false);
-            };
+            if (netIncome !== 0) updateBank(netIncome);
 
-            const importGame = (game) => {
-                const newGame = { 
-                    ...game, 
-                    id: crypto.randomUUID(), 
-                    type: 'url', 
-                    favorite: false,
-                    cover: game.cover || 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400'
-                };
-                setGames(prev => [...prev, newGame]);
-                alert(`Added ${game.name} to your Library!`);
-            };
+            let currentSports = { ...character.sports };
+            if (currentSports.team) {
+                const perfChange = Math.floor((stats.athleticism - 50) / 10) + Math.floor(Math.random() * 11) - 5;
+                currentSports.performance = Math.min(100, Math.max(0, currentSports.performance + perfChange));
+                
+                if (currentSports.coach) currentSports.coach.age++;
+                if (currentSports.roster) currentSports.roster.forEach(t => t.age++);
+                
+                if (currentSports.level === 'Pro') {
+                    const proSalary = 500000 + (currentSports.performance * 100000); 
+                    updateBank(proSalary);
+                    addLog(`You earned $${proSalary.toLocaleString()} playing pro ${currentSports.sport.toLowerCase()}!`, "good");
+                    updateStat('health', -5); 
+                    
+                    if (newAge > 35 && Math.random() < (newAge - 35) * 0.1) {
+                        addLog(`Your body can't keep up anymore. You retired from pro ${currentSports.sport.toLowerCase()}.`, "neutral");
+                        currentSports = { level: 'None', sport: null, team: null, performance: 0, coach: null, roster: [] };
+                    }
+                } else if (currentSports.level === 'Middle School' && newAge > 14) {
+                    addLog(`You graduated middle school and finished your ${currentSports.sport.toLowerCase()} season.`, "neutral");
+                    currentSports = { level: 'None', sport: null, team: null, performance: 0, coach: null, roster: [] };
+                } else if (currentSports.level === 'High School' && newAge > 18) {
+                    addLog(`You graduated and finished your high school ${currentSports.sport.toLowerCase()} career.`, "neutral");
+                    currentSports = { level: 'None', sport: null, team: null, performance: 0, coach: null, roster: [] };
+                } else if (currentSports.level === 'College' && (!education.current || !education.current.includes("University") || newAge > 24)) {
+                    addLog(`You finished your college ${currentSports.sport.toLowerCase()} career.`, "neutral");
+                    currentSports = { level: 'None', sport: null, team: null, performance: 0, coach: null, roster: [] };
+                }
+            }
 
-            const handleAddGame = (e) => {
-                e.preventDefault();
-                const newGame = {
-                    id: crypto.randomUUID(),
-                    name: newGameName,
-                    type: addMethod,
-                    cover: newGameCover || 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400',
-                    url: newGameUrl,
-                    content: newGameFileContent,
-                    favorite: false
-                };
-                setGames([...games, newGame]);
-                setIsAddModalOpen(false);
-                setNewGameName(''); setNewGameUrl(''); setNewGameCover(''); setNewGameFileContent(null); setFileName('');
-            };
+            // Apply Illness and regular drain
+            let healthDrain = Math.floor(Math.random() * 4);
+            let activeIllnesses = [...(character.illnesses || [])];
+            
+            if (activeIllnesses.length > 0) {
+                activeIllnesses.forEach(ill => {
+                    healthDrain += ill.severity;
+                    addLog(`You are suffering from ${ill.name}.`, "bad");
+                });
+            }
 
-            const handleFileChange = (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                setFileName(file.name);
-                if (!newGameName) setNewGameName(file.name.replace(/\.[^/.]+$/, ""));
-                setNewGameFileContent(file);
-            };
+            updateStat('health', -healthDrain);
+            updateStat('looks', newAge > 30 ? -Math.floor(Math.random() * 3) : 0);
+            updateStat('athleticism', -Math.floor(Math.random() * 4));
+            
+            // Contract new illnesses
+            if (Math.random() < 0.15) {
+                let possibleIlls = ILLNESSES.filter(i => newAge > 50 ? true : i.severity < 20);
+                if (newAge > 40 && Math.random() < 0.2) possibleIlls = ILLNESSES.filter(i => i.severity >= 15);
+                
+                const sickness = possibleIlls[Math.floor(Math.random() * possibleIlls.length)];
+                if (!activeIllnesses.some(i => i.name === sickness.name)) {
+                    activeIllnesses.push(sickness);
+                    setPopupAlert({ title: "Medical Alert", message: `You have been diagnosed with ${sickness.name}.`, type: "bad" });
+                    addLog(`You contracted ${sickness.name}.`, "bad");
+                }
+            }
 
-            const displayedGames = useMemo(() => {
-                return games
-                    .filter(g => showFavoritesOnly ? g.favorite : true)
-                    .filter(g => g.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                    .sort((a, b) => a.favorite === b.favorite ? a.name.localeCompare(b.name) : (a.favorite ? -1 : 1));
-            }, [games, showFavoritesOnly, searchQuery]);
+            let relationsCpy = [...relationships];
+            relationsCpy = relationsCpy.map(r => {
+                const rNewAge = r.age + 1;
+                
+                if (r.type !== 'Pet' && rNewAge > 65 && Math.random() < (rNewAge - 65) * 0.015) {
+                    addLog(`Your ${r.type.toLowerCase()}, ${r.name}, has passed away at age ${rNewAge}.`, "bad");
+                    updateStat('happiness', -30);
+                    
+                    if ((r.type === 'Mother' || r.type === 'Father') && (character.royalStatus === 'Prince' || character.royalStatus === 'Princess')) {
+                        const newTitle = character.gender === 'Male' ? 'King' : 'Queen';
+                        setCharacter(prev => ({ ...prev, royalStatus: newTitle }));
+                        addLog(`You have ascended to the throne! You are now the ${newTitle} of ${character.country}.`, "good");
+                    }
+                    return { ...r, dead: true };
+                }
+                
+                if (r.type === 'Pet' && rNewAge > 10 && Math.random() < (rNewAge - 10) * 0.1) {
+                    addLog(`Your beloved pet ${r.species}, ${r.name}, has passed away.`, "bad");
+                    updateStat('happiness', -20);
+                    return { ...r, dead: true };
+                }
+                
+                return { ...r, age: rNewAge };
+            });
 
+            setRelationships(relationsCpy.filter(r => !r.dead));
+            setCharacter(prev => ({ ...prev, age: newAge, sports: currentSports, illnesses: activeIllnesses }));
+
+            // Standard Random Events
+            if (Math.random() < 0.2) {
+              if (newAge < 18) {
+                 addLog("You learned a cool new trick today.", "good"); 
+                 updateStat('happiness', 10); 
+              } else {
+                if (Math.random() < 0.5) { 
+                    addLog("You had a really stressful day.", "bad"); 
+                    updateStat('happiness', -10); 
+                } else { 
+                    addLog("You found $50 in an old jacket pocket!", "good"); 
+                    updateBank(50); 
+                }
+              }
+            }
+
+            if (stats.health - healthDrain <= 0) {
+              die("You succumbed to your poor health.");
+            } else if (newAge > 65 && Math.random() * 100 < (newAge - 65) * 1.5) {
+              die("You died of natural causes.");
+            }
+          };
+
+          const die = (reason) => {
+            setCharacter(prev => ({ ...prev, isAlive: false, causeOfDeath: reason }));
+            addLog(reason, "bad");
+            addLog("GAME OVER", "bad");
+          };
+
+          const startEnrollment = (school, cost, needsMajor = false) => {
+            if (needsMajor) {
+              setEnrollmentProcess({ school, cost });
+              setSelectedMajor(MAJORS[0]);
+            } else {
+              applyEducation(school, cost, null);
+            }
+          };
+
+          const applyEducation = (school, cost, major = null) => {
+            const degreeName = major ? `${school} (${major})` : school;
+            if (education.current) {
+              addLog(`You are already enrolled in ${education.current}.`, "bad");
+              return;
+            }
+            if (character.bankBalance >= cost) {
+              updateBank(-cost);
+              setEducation(prev => ({ ...prev, current: degreeName }));
+              addLog(`You paid $${cost.toLocaleString()} and enrolled in ${degreeName}!`, "good");
+              updateStat('smarts', 5);
+            } else if (school === "University" && stats.athleticism > 85) {
+               setEducation(prev => ({ ...prev, current: degreeName }));
+               addLog(`Your incredible athletic skills earned you a full sports scholarship to ${degreeName}!`, "good");
+            } else if (stats.smarts > 85) {
+               setEducation(prev => ({ ...prev, current: degreeName }));
+               addLog(`Your high smarts earned you a full scholarship to ${degreeName}!`, "good");
+            } else {
+              addLog(`You cannot afford the $${cost.toLocaleString()} tuition.`, "bad");
+            }
+            setEnrollmentProcess(null);
+            setActiveScreen('main');
+          };
+
+          const graduate = () => {
+            addLog(`You successfully graduated from ${education.current}!`, "good");
+            setEducation(prev => ({ degrees: [...prev.degrees, prev.current], current: null }));
+            updateStat('happiness', 20);
+            setActiveScreen('main');
+          };
+
+          const dropOut = () => {
+            addLog(`You dropped out of ${education.current}.`, "neutral");
+            setEducation(prev => ({ ...prev, current: null }));
+            updateStat('happiness', -10);
+            setActiveScreen('main');
+          };
+
+          const bookVacation = () => {
+            const totalPeople = 1 + vacationCompanions.length;
+            const cost = selectedDest.baseCost * selectedClass.multiplier * totalPeople;
+            if (character.bankBalance >= cost) {
+              updateBank(-cost);
+              addLog(`You flew ${selectedClass.name} class to ${selectedDest.name}${vacationCompanions.length > 0 ? ` with ${vacationCompanions.length} companion(s)` : ''}!`, "good");
+              updateStat('happiness', selectedClass.hap);
+              updateStat('health', selectedClass.heal);
+              updateMultipleRelationships(vacationCompanions, 25);
+              setVacationCompanions([]);
+              setActiveScreen('main');
+            } else {
+              addLog(`You can't afford the $${cost.toLocaleString()} trip to ${selectedDest.name} for ${totalPeople} people.`, "bad");
+            }
+          };
+
+          const treatIllness = (ill) => {
+              const cost = character.age < 18 ? 0 : ill.cureCost;
+              if (character.bankBalance >= cost || character.age < 18) {
+                  updateBank(-cost);
+                  const success = Math.random() * 100 < ill.cureChance;
+                  if (success) {
+                      addLog(`The doctor successfully treated your ${ill.name}!`, "good");
+                      updateStat('health', ill.severity * 2);
+                      setCharacter(prev => ({ ...prev, illnesses: prev.illnesses.filter(i => i.name !== ill.name) }));
+                      setPopupAlert({ title: "Treatment Successful", message: `Your ${ill.name} has been completely cured!`, type: "good" });
+                  } else {
+                      addLog(`The treatment for ${ill.name} was unsuccessful.`, "bad");
+                      setPopupAlert({ title: "Treatment Failed", message: `The doctors tried their best, but your ${ill.name} persists.`, type: "bad" });
+                  }
+              } else {
+                  addLog(`You cannot afford the $${cost.toLocaleString()} treatment for ${ill.name}.`, "bad");
+                  setPopupAlert({ title: "Insufficient Funds", message: `You need $${cost.toLocaleString()} for this treatment.`, type: "bad" });
+              }
+          };
+
+          const activityStudy = () => {
+            if (Math.random() > 0.4) {
+              addLog("You studied hard and feel much smarter.", "good");
+              updateStat('smarts', Math.floor(Math.random() * 4) + 2);
+            } else {
+              addLog("You tried to study but couldn't focus.", "neutral");
+              updateStat('happiness', -2);
+            }
+            setActiveScreen('main');
+          };
+
+          const activityRead = () => {
+            addLog("You spent the afternoon reading a fascinating book.", "good");
+            updateStat('smarts', 2);
+            updateStat('happiness', 3);
+            setActiveScreen('main');
+          };
+
+          const activityLibrary = () => {
+            addLog("You spent some quiet time studying at the local library.", "good");
+            updateStat('smarts', Math.floor(Math.random() * 3) + 1);
+            setActiveScreen('main');
+          };
+
+          const activityMeditate = () => {
+            addLog("You meditated and feel deeply at peace.", "good");
+            updateStat('happiness', Math.floor(Math.random() * 4) + 2);
+            updateStat('health', 1);
+            setActiveScreen('main');
+          };
+
+          const activityVolunteer = () => {
+            addLog("You volunteered your time to help the community.", "good");
+            updateStat('happiness', 15);
+            updateStat('looks', 1); 
+            setActiveScreen('main');
+          };
+
+          const makeFriend = () => {
+            const friend = generatePerson('Friend', character.age, 'Unknown', character.country);
+            setRelationships(prev => [...prev, friend]);
+            addLog(`You hung out and became friends with ${friend.name}!`, "good");
+            updateStat('happiness', 10);
+            setActiveScreen('main');
+          };
+
+          const findDate = () => {
+            const partner = generatePerson('Partner', character.age, 'Unknown', character.country);
+            setRelationships(prev => [...prev, partner]);
+            addLog(`You asked out ${partner.name} and they said yes!`, "good");
+            updateStat('happiness', 15);
+            setActiveScreen('main');
+          };
+
+          const takeDrivingTest = () => {
+              if (character.bankBalance >= 50) {
+                  updateBank(-50);
+                  const passed = Math.random() * 100 < stats.smarts + 20; 
+                  if (passed) {
+                      setCharacter(prev => ({ ...prev, hasDriversLicense: true }));
+                      addLog("You passed your driving test and got your license!", "good");
+                      updateStat('happiness', 20);
+                  } else {
+                      addLog("You failed your driving test. Try again next year.", "bad");
+                      updateStat('happiness', -10);
+                  }
+              } else {
+                  addLog("You don't have $50 for the driving test.", "bad");
+              }
+              setActiveScreen('main');
+          };
+
+          const useSocialMedia = () => {
+              if (character.age < 9) {
+                  addLog("You must be at least 9 years old to create a social media account.", "bad");
+                  return;
+              }
+              if (!character.hasSocialMedia) {
+                  setCharacter(prev => ({ ...prev, hasSocialMedia: true, followers: 0 }));
+                  addLog("You created a new social media profile!", "good");
+                  setActiveScreen('main');
+                  return;
+              }
+
+              const roll = Math.random();
+              if (roll < 0.1) {
+                  const lost = Math.floor(character.followers * 0.05) + 1;
+                  setCharacter(prev => ({ ...prev, followers: Math.max(0, prev.followers - lost) }));
+                  addLog("You posted a cringe video. You lost followers.", "bad");
+                  updateStat('happiness', -5);
+              } else if (roll < 0.9) {
+                  const gained = Math.floor(Math.random() * 50) + 10;
+                  setCharacter(prev => ({ ...prev, followers: prev.followers + gained }));
+                  addLog(`Your post did okay. You gained ${gained} followers!`, "good");
+              } else {
+                  const viralGained = Math.floor(Math.random() * 10000) + 500;
+                  setCharacter(prev => ({ ...prev, followers: prev.followers + viralGained }));
+                  addLog(`Your post WENT VIRAL! You gained ${viralGained.toLocaleString()} followers!`, "good");
+                  updateStat('happiness', 25);
+              }
+              setActiveScreen('main');
+          };
+
+          const adoptPet = () => {
+            if (character.bankBalance >= 50) {
+              updateBank(-50);
+              const petTypes = ["Dog", "Cat", "Rabbit", "Parrot"];
+              const species = petTypes[Math.floor(Math.random() * petTypes.length)];
+              const petGender = Math.random() > 0.5 ? 'Male' : 'Female';
+              const petName = `Your ${species}`;
+              
+              const newPet = { id: generateId(), type: 'Pet', species, name: petName, gender: petGender, age: 0, relationshipLevel: 80 };
+              setRelationships(prev => [...prev, newPet]);
+              addLog(`You adopted a cute ${species.toLowerCase()}!`, "good");
+              updateStat('happiness', 25);
+            } else {
+              addLog("You don't have $50 to adopt a pet.", "bad");
+            }
+            setActiveScreen('main');
+          };
+
+          const interact = (person, action) => {
+            if (person.type === 'Pet') {
+                if (action === 'spend_time') {
+                    addLog(`You played with ${person.name}. So fun!`, "good");
+                    updateRelationship(person.id, 10);
+                    updateStat('happiness', 10);
+                } else if (action === 'treat') {
+                    addLog(`You gave ${person.name} a yummy treat!`, "good");
+                    updateRelationship(person.id, 15);
+                }
+            } else {
+                if (action === 'spend_time') {
+                  addLog(`You spent quality time with your ${person.type.toLowerCase()}, ${person.name}.`, "neutral");
+                  updateRelationship(person.id, 10);
+                  updateStat('happiness', 5);
+                } else if (action === 'converse') {
+                  addLog(`You had a nice conversation with ${person.name}.`, "neutral");
+                  updateRelationship(person.id, 5);
+                } else if (action === 'compliment') {
+                  addLog(`You complimented ${person.name}. They smiled!`, "good");
+                  updateRelationship(person.id, 15);
+                } else if (action === 'insult') {
+                  addLog(`You insulted ${person.name}. They were upset.`, "bad");
+                  updateRelationship(person.id, -30);
+                  updateStat('happiness', -5);
+                } else if (action === 'propose') {
+                  if (person.relationshipLevel > 70) {
+                    addLog(`You proposed to ${person.name} and they said YES!`, "good");
+                    setRelationships(prev => prev.map(r => r.id === person.id ? { ...r, type: 'Fiancé(e)' } : r));
+                    updateStat('happiness', 30);
+                  } else {
+                    addLog(`You proposed to ${person.name} but they rejected you. Ouch.`, "bad");
+                    updateRelationship(person.id, -20);
+                    updateStat('happiness', -20);
+                  }
+                } else if (action === 'marry') {
+                  if (character.bankBalance >= 5000) {
+                      addLog(`You and ${person.name} got married in a beautiful ceremony!`, "good");
+                      setRelationships(prev => prev.map(r => r.id === person.id ? { ...r, type: 'Spouse' } : r));
+                      updateBank(-5000); 
+                      updateStat('happiness', 40);
+                  } else {
+                      addLog(`You cannot afford the $5,000 cost to marry ${person.name}.`, "bad");
+                  }
+                } else if (action === 'have_baby') {
+                  const region = REGIONAL_NAMES[COUNTRY_REGIONS[character.country] || "English"];
+                  const babyGender = Math.random() > 0.5 ? 'Male' : 'Female';
+                  const babyName = region[babyGender === 'Male' ? 'm' : 'f'][Math.floor(Math.random() * region[babyGender === 'Male' ? 'm' : 'f'].length)];
+                  const lastName = character.name.includes(' ') ? character.name.substring(character.name.indexOf(' ') + 1) : "Unknown";
+                  const baby = { id: generateId(), type: babyGender === 'Male' ? 'Son' : 'Daughter', name: `${babyName} ${lastName}`, age: 0, gender: babyGender, relationshipLevel: 100 };
+                  setRelationships(prev => [...prev, baby]);
+                  addLog(`You welcomed a beautiful baby ${babyGender.toLowerCase()} named ${baby.name}!`, "good");
+                  updateStat('happiness', 50);
+                } else if (action === 'break_up') {
+                  addLog(`You broke up with ${person.name}.`, "neutral");
+                  updateStat('happiness', -20);
+                  setRelationships(prev => prev.filter(r => r.id !== person.id));
+                }
+            }
+            setActiveScreen('main');
+          };
+
+          const tryOutSport = (sportName, level) => {
+              if (character.sports.team) {
+                  addLog("You are already on a team!", "bad");
+                  return;
+              }
+              const requiredAthleticism = level === 'Pro' ? 90 : level === 'College' ? 70 : 40;
+              const chance = (stats.athleticism - requiredAthleticism) + 50 + Math.random() * 20;
+              if (chance > 50) {
+                  let teamPrefix = character.gender === 'Male' ? "Boys" : "Girls";
+                  if (level === 'College' || level === 'Pro') teamPrefix = character.gender === 'Male' ? "Men's" : "Women's";
+                  
+                  let teamName = `${level} ${sportName}`;
+                  if (level === 'Pro') {
+                      teamName = PRO_TEAMS[sportName][Math.floor(Math.random() * PRO_TEAMS[sportName].length)];
+                  }
+                  const fullTeamName = level === 'Pro' ? teamName : `${teamPrefix} ${teamName}`;
+
+                  const coach = generatePerson('Coach', character.age, 'Unknown', character.country, Math.random() > 0.5 ? 'Male' : 'Female');
+                  const roster = Array.from({length: 4}).map(() => generatePerson('Teammate', character.age, 'Unknown', character.country, character.gender));
+
+                  if (level === 'Pro') {
+                      addLog(`You were signed by the ${fullTeamName} to play pro ${sportName}!`, "good");
+                      updateStat('happiness', 50);
+                  } else {
+                      addLog(`You made the ${fullTeamName} team!`, "good");
+                      updateStat('happiness', 20);
+                  }
+                  setCharacter(prev => ({ ...prev, sports: { level, sport: sportName, team: fullTeamName, performance: 50, coach, roster } }));
+              } else {
+                  addLog(`You failed the tryouts for the ${level} ${sportName} team.`, "bad");
+                  updateStat('happiness', -10);
+              }
+              setActiveScreen('main');
+          };
+          
+          const practiceSport = () => {
+              addLog("You practiced hard and improved your athleticism.", "good");
+              updateStat('athleticism', Math.floor(Math.random() * 5) + 2);
+              if (character.sports.team) {
+                  setCharacter(prev => ({ ...prev, sports: { ...prev.sports, performance: Math.min(100, prev.sports.performance + 5) } }));
+              }
+              updateStat('health', 2);
+              setActiveScreen('main');
+          };
+          
+          const quitSport = () => {
+              addLog(`You quit the ${character.sports.team}.`, "neutral");
+              setCharacter(prev => ({ ...prev, sports: { level: 'None', sport: null, team: null, performance: 0, coach: null, roster: [] } }));
+              setActiveScreen('main');
+          };
+
+          const befriendTeammate = (teammate) => {
+              if (relationships.some(r => r.id === teammate.id)) return;
+              const friend = { ...teammate, type: 'Friend', relationshipLevel: 60 };
+              setRelationships(prev => [...prev, friend]);
+              addLog(`You became friends with your teammate, ${teammate.name}!`, "good");
+              updateStat('happiness', 10);
+          };
+
+          const ScreenLayout = ({ title, children }) => (
+            <div className="absolute inset-0 bg-gray-950/95 backdrop-blur-md z-30 flex flex-col animate-in slide-in-from-bottom-4 duration-200">
+              <div className="bg-gray-900/80 p-4 border-b border-gray-800 flex items-center gap-3 shrink-0 shadow-lg backdrop-blur-xl">
+                <button onClick={() => setActiveScreen('main')} className="p-2 -ml-2 text-gray-400 hover:text-white rounded-full hover:bg-gray-800 transition-colors">
+                  <ArrowLeft size={24} />
+                </button>
+                <h2 className="text-xl font-bold text-white flex-1">{title}</h2>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar pb-24">
+                {children}
+              </div>
+            </div>
+          );
+
+          if (appState === 'start') {
             return (
-                <div className="h-screen w-full flex flex-col relative overflow-hidden bg-[#020617]">
-                    {/* Giant Ambient Background Blobs */}
-                    <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-purple-600/15 blur-[140px] rounded-full animate-float pointer-events-none"></div>
-                    <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-blue-600/15 blur-[140px] rounded-full animate-float-delayed pointer-events-none"></div>
-
-                    {/* Super Glass Header */}
-                    <header className="relative z-20 mx-4 sm:mx-8 mt-6 px-6 sm:px-8 py-5 sm:py-6 flex flex-col md:flex-row items-center justify-between glass-panel rounded-[3rem] gap-6 animate-in fade-in slide-in-from-top-4 duration-700">
-                        <div className="flex items-center gap-5 w-full md:w-auto justify-between md:justify-start">
-                            <div className="flex items-center gap-5 group cursor-default">
-                                <div className="p-4 bg-gradient-to-br from-purple-500/80 to-blue-600/80 rounded-[1.5rem] shadow-[0_0_30px_rgba(168,85,247,0.4)] group-hover:scale-110 group-hover:rotate-12 group-hover:shadow-[0_0_50px_rgba(168,85,247,0.7)] transition-all duration-500 border border-white/20">
-                                    <Icon name="gamepad-2" size={36} className="text-white" />
-                                </div>
-                                <h1 className="text-4xl sm:text-5xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white via-purple-100 to-gray-400 group-hover:from-purple-300 group-hover:to-blue-300 transition-colors duration-500 drop-shadow-sm">
-                                    VAULT
-                                </h1>
-                            </div>
-                            
-                            <button onClick={() => setIsNetworkModalOpen(true)} className="md:hidden p-4 rounded-full border border-white/10 bg-white/5 hover:bg-blue-500 hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] transition-all backdrop-blur-md">
-                                <Icon name="globe" size={24} className="text-blue-200" />
-                            </button>
-                        </div>
-
-                        <div className="flex items-center gap-4 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-                             <div className="flex bg-black/40 p-1.5 rounded-full border border-white/10 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] shrink-0">
-                                <button onClick={() => setView('library')} className={`px-8 py-3 rounded-full transition-all text-sm font-black tracking-widest uppercase ${view === 'library' ? 'bg-white text-black shadow-lg scale-[1.02]' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}>Library</button>
-                                <button onClick={fetchCommunity} className={`px-8 py-3 rounded-full transition-all text-sm font-black tracking-widest uppercase ${view === 'community' ? 'bg-white text-black shadow-lg scale-[1.02]' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}>Network</button>
-                            </div>
-
-                            <button onClick={() => setIsNetworkModalOpen(true)} title="Network Profile" className="hidden md:flex p-4 rounded-full border border-white/10 bg-white/5 hover:bg-blue-500/40 hover:border-blue-400 hover:shadow-[0_0_30px_rgba(59,130,246,0.4)] transition-all backdrop-blur-md shrink-0 group active:scale-95">
-                                <Icon name="globe" size={22} className="text-blue-200 group-hover:scale-110 transition-transform" />
-                            </button>
-
-                            <button
-                                onClick={() => setIsAddModalOpen(true)}
-                                className="group flex items-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 hover:shadow-[0_10px_40px_rgba(168,85,247,0.6)] hover:-translate-y-1 active:scale-95 transition-all shadow-[0_10px_20px_rgba(168,85,247,0.3)] shrink-0"
-                            >
-                                <Icon name="plus" size={20} className="text-white group-hover:rotate-180 transition-transform duration-700" />
-                                <span className="font-black text-sm tracking-widest uppercase text-white hidden lg:block">Add Game</span>
-                            </button>
-                        </div>
-                    </header>
-
-                    <main className="flex-1 overflow-y-auto px-4 sm:px-8 pt-8 pb-12 relative z-10 w-full max-w-[100rem] mx-auto">
-                        {view === 'library' && (
-                            <div className="space-y-10 animate-in fade-in duration-500">
-                                <div className="flex flex-col sm:flex-row items-center gap-4 max-w-4xl mx-auto">
-                                    <div className="relative group flex-1 w-full">
-                                        <Icon name="search" size={24} className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-purple-400 transition-colors" />
-                                        <input 
-                                            type="text" 
-                                            placeholder="Search your vast collection..." 
-                                            className="w-full pl-16 pr-6 py-5 rounded-full neo-input text-xl font-medium"
-                                            value={searchQuery}
-                                            onChange={e => setSearchQuery(e.target.value)}
-                                        />
-                                    </div>
-                                    {games.length > 0 && (
-                                        <button
-                                            onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                                            className={`p-5 rounded-full neo-input flex items-center justify-center transition-all hover:scale-105 active:scale-95 shrink-0 ${showFavoritesOnly ? 'bg-red-500/20 border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.4)]' : ''}`}
-                                            title="Toggle Favorites"
-                                        >
-                                            <Icon name="heart" size={24} className={showFavoritesOnly ? "text-red-400" : "text-gray-400"} fill={showFavoritesOnly ? "currentColor" : "none"} />
-                                        </button>
-                                    )}
-                                </div>
-
-                                {!isLoaded ? (
-                                    <div className="flex justify-center py-20"><Icon name="loader" size={60} className="animate-spin text-purple-500 drop-shadow-[0_0_20px_rgba(168,85,247,0.5)]" /></div>
-                                ) : displayedGames.length === 0 ? (
-                                    <div className="glass-panel p-16 rounded-[4rem] text-center max-w-2xl mx-auto border-dashed border-2 border-white/20">
-                                        <div className="w-32 h-32 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-8 shadow-[inset_0_0_30px_rgba(168,85,247,0.2)] animate-pulse">
-                                            <Icon name={games.length === 0 ? "gamepad-2" : "search-x"} size={60} className="text-purple-400/50" />
-                                        </div>
-                                        <h2 className="text-4xl font-black mb-4">{games.length === 0 ? "Your Vault is Empty" : "No Matches Found"}</h2>
-                                        <p className="text-gray-400 text-lg">{games.length === 0 ? "Hit the 'Add Game' button above to start building your collection!" : "Try adjusting your search terms."}</p>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8">
-                                        {displayedGames.map((game, idx) => (
-                                            <div 
-                                                key={game.id} 
-                                                onClick={() => setPlayingGame(game)}
-                                                className="glass-panel group rounded-[3rem] overflow-hidden cursor-pointer transition-all duration-500 hover:-translate-y-4 hover:shadow-[0_40px_70px_-15px_rgba(168,85,247,0.6)] hover:border-purple-500/60 animate-in fade-in slide-in-from-bottom-8 fill-mode-both"
-                                                style={{ animationDelay: `${idx * 50}ms` }}
-                                            >
-                                                <div className="aspect-[4/3] relative overflow-hidden bg-slate-900 flex items-center justify-center">
-                                                    {game.cover ? (
-                                                        <img src={game.cover} className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-1000 ease-out opacity-80 group-hover:opacity-100" />
-                                                    ) : (
-                                                        <Icon name="gamepad-2" size={64} className="opacity-10" />
-                                                    )}
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent opacity-80 group-hover:opacity-50 transition-opacity"></div>
-                                                    
-                                                    {/* Hover Play Button */}
-                                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                                        <div className="p-6 bg-white/20 backdrop-blur-md rounded-full shadow-[0_0_40px_rgba(168,85,247,0.8)] border border-white/30 transform scale-50 group-hover:scale-100 transition-transform duration-500 ease-out">
-                                                            <Icon name="play" size={40} className="text-white ml-2" />
-                                                        </div>
-                                                    </div>
-
-                                                    <button 
-                                                        onClick={(e) => { e.stopPropagation(); toggleFavorite(game, e); }}
-                                                        className={`absolute top-5 right-5 p-3.5 rounded-full backdrop-blur-xl border transition-all duration-300 hover:scale-110 active:scale-95 z-20 ${game.favorite ? 'bg-red-500/20 border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.5)]' : 'bg-black/40 border-white/10 hover:bg-white/20 hover:border-white/30'}`}
-                                                    >
-                                                        <Icon name="heart" size={22} fill={game.favorite ? "currentColor" : "none"} className={game.favorite ? "text-red-500" : "text-white/60 group-hover:text-white"} />
-                                                    </button>
-                                                </div>
-                                                <div className="p-8 relative">
-                                                    <h3 className="font-black text-2xl truncate pr-12 group-hover:text-purple-300 transition-colors">{game.name}</h3>
-                                                    <div className="flex items-center gap-2 mt-3">
-                                                        <span className={`px-4 py-1.5 rounded-full text-xs font-black tracking-widest uppercase border ${game.type === 'url' ? 'bg-blue-500/10 border-blue-500/20 text-blue-300' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'}`}>
-                                                            <Icon name={game.type === 'url' ? 'link' : 'file-code'} size={12} className="inline mr-1.5 mb-0.5" />
-                                                            {game.type}
-                                                        </span>
-                                                    </div>
-                                                    <button 
-                                                        onClick={(e) => { e.stopPropagation(); setGameToDelete(game); }}
-                                                        className="absolute bottom-8 right-6 p-3 rounded-full bg-red-500/10 text-red-400/60 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 hover:shadow-[0_0_20px_rgba(239,68,68,0.6)]"
-                                                    >
-                                                        <Icon name="trash-2" size={20} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {view === 'community' && (
-                            <div className="animate-in fade-in duration-500 max-w-7xl mx-auto space-y-10">
-                                <div className="flex flex-col sm:flex-row items-center justify-between gap-6 glass-panel p-8 rounded-[3rem]">
-                                    <div className="flex items-center gap-5">
-                                        <div className="p-4 bg-blue-500/20 rounded-2xl border border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.3)]">
-                                            <Icon name="globe" size={32} className="text-blue-400" />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-purple-300">Vault Network</h2>
-                                            <p className="text-gray-400 font-medium">Discover and import games shared by the community.</p>
-                                        </div>
-                                    </div>
-                                    <button onClick={fetchCommunity} className="flex items-center gap-3 px-8 py-4 rounded-full neo-input text-sm font-black tracking-widest uppercase hover:text-blue-300 hover:border-blue-500/30 transition-all active:scale-95 w-full sm:w-auto justify-center">
-                                        <Icon name="refresh-cw" size={20} className={isLoadingCommunity ? "animate-spin text-blue-400" : ""} />
-                                        Refresh
-                                    </button>
-                                </div>
-
-                                {isLoadingCommunity ? (
-                                    <div className="flex flex-col items-center justify-center py-32">
-                                        <Icon name="loader" size={60} className="animate-spin text-blue-500 drop-shadow-[0_0_20px_rgba(59,130,246,0.5)] mb-6" />
-                                        <h3 className="text-2xl font-black text-gray-300">Connecting to Network...</h3>
-                                    </div>
-                                ) : communityVaults.length === 0 ? (
-                                    <div className="glass-panel p-16 rounded-[4rem] text-center max-w-2xl mx-auto border-dashed border-2 border-white/20">
-                                        <Icon name="wifi-off" size={64} className="mx-auto mb-6 text-white/20" />
-                                        <h3 className="text-3xl font-black mb-3">No Vaults Found</h3>
-                                        <p className="text-gray-400 text-lg mb-8">It's quiet here. Be the first to share your collection!</p>
-                                        <button onClick={() => setIsNetworkModalOpen(true)} className="px-10 py-5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full font-black text-sm tracking-widest uppercase hover:shadow-[0_10px_40px_rgba(59,130,246,0.6)] hover:-translate-y-1 transition-all active:scale-95">Publish My Vault</button>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                                        {communityVaults.map((vault, i) => (
-                                            <div key={i} className="glass-panel rounded-[3rem] p-8 flex flex-col gap-6 hover:border-blue-500/40 hover:shadow-[0_30px_60px_-15px_rgba(59,130,246,0.4)] transition-all duration-500 hover:-translate-y-2 group">
-                                                <div className="flex items-center gap-5">
-                                                    <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-[1.5rem] flex items-center justify-center font-black text-4xl shadow-[inset_0_2px_15px_rgba(255,255,255,0.3)] shadow-[0_10px_20px_rgba(59,130,246,0.4)] group-hover:scale-110 transition-transform duration-500 rotate-3">
-                                                        {vault.userName?.[0]?.toUpperCase() || 'V'}
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="font-black text-2xl tracking-tight">{vault.userName}'s Vault</h4>
-                                                        <p className="text-xs text-blue-300/80 font-black uppercase tracking-widest mt-1">{vault.games?.length || 0} Shared Games</p>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div className="space-y-3 mt-2">
-                                                    {vault.games?.slice(0, 4).map((g, j) => (
-                                                        <div key={j} className="bg-black/30 p-4 pl-6 rounded-2xl border border-white/5 flex items-center justify-between group/item hover:bg-white/10 hover:border-white/20 transition-all shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)]">
-                                                            <div className="flex items-center gap-4 overflow-hidden">
-                                                                <Icon name="gamepad-2" size={20} className="text-white/30 shrink-0 group-hover/item:text-blue-400 transition-colors" />
-                                                                <span className="truncate font-bold text-lg text-gray-200 group-hover/item:text-white transition-colors">{g.name}</span>
-                                                            </div>
-                                                            <button onClick={() => importGame(g)} className="p-3 bg-white/5 hover:bg-blue-500 hover:text-white rounded-xl text-blue-400 transition-all shadow-sm active:scale-95 hover:shadow-[0_0_15px_rgba(59,130,246,0.5)]">
-                                                                <Icon name="download" size={20}/>
-                                                            </button>
-                                                        </div>
-                                                    ))}
-                                                    {vault.games && vault.games.length > 4 && (
-                                                        <div className="text-center text-xs text-gray-500 pt-3 font-black uppercase tracking-[0.2em]">
-                                                            + {vault.games.length - 4} more hidden
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </main>
-
-                    {/* FULLSCREEN PLAYER */}
-                    {playingGame && (
-                        <div className="fixed inset-0 z-[100] bg-black flex flex-col animate-in zoom-in-95 duration-300">
-                            <div className="h-20 flex items-center justify-between px-8 glass-panel rounded-none border-t-0 border-x-0">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-2.5 bg-purple-500/20 rounded-xl border border-purple-500/30">
-                                        <Icon name="gamepad-2" size={24} className="text-purple-400" />
-                                    </div>
-                                    <span className="font-black text-xl tracking-widest text-white">{playingGame.name}</span>
-                                </div>
-                                <button onClick={() => setPlayingGame(null)} className="flex items-center gap-2 px-8 py-3.5 bg-red-500/10 hover:bg-red-500 border border-red-500/30 text-red-400 hover:text-white rounded-full text-sm font-black tracking-widest uppercase transition-all shadow-[0_0_20px_rgba(239,68,68,0.2)] hover:shadow-[0_0_30px_rgba(239,68,68,0.5)] active:scale-95">
-                                    <Icon name="log-out" size={18} /> Exit
-                                </button>
-                            </div>
-                            <iframe 
-                                src={playingGame.type === 'url' ? playingGame.url : blobUrl} 
-                                className="flex-1 w-full h-full border-none bg-white"
-                                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock allow-downloads"
-                            />
-                        </div>
-                    )}
-
-                    {/* MODAL: ADD GAME */}
-                    {isAddModalOpen && (
-                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-3xl animate-in fade-in duration-500">
-                            <div className="relative w-full max-w-2xl rounded-[4rem] p-10 sm:p-14 text-center animate-in zoom-in-95 duration-500 glass-panel overflow-hidden">
-                                <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.15)_0%,transparent_50%)] pointer-events-none"></div>
-                                
-                                <button onClick={() => setIsAddModalOpen(false)} className="absolute top-8 right-8 p-4 rounded-full neo-input hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/30 transition-all duration-300 hover:rotate-90 z-10">
-                                    <Icon name="x" size={28} />
-                                </button>
-
-                                <div className="relative z-10">
-                                    <h2 className="text-4xl sm:text-5xl font-black mb-10 tracking-tighter flex items-center justify-center gap-5 text-transparent bg-clip-text bg-gradient-to-r from-white to-purple-200">
-                                        <div className="p-4 bg-gradient-to-br from-purple-500 to-blue-600 rounded-[1.5rem] shadow-[0_0_30px_rgba(168,85,247,0.5)] rotate-3">
-                                            <Icon name="plus" size={36} className="text-white" />
-                                        </div>
-                                        Add to Vault
-                                    </h2>
-
-                                    <div className="flex p-2.5 bg-black/40 rounded-full mb-10 border border-white/10 shadow-[inset_0_2px_20px_rgba(0,0,0,0.5)]">
-                                        <button onClick={() => setAddMethod('url')} className={`flex-1 py-4.5 rounded-full text-sm font-black tracking-widest transition-all duration-300 ${addMethod === 'url' ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-[0_0_20px_rgba(168,85,247,0.5)] scale-[1.02]' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}>URL EMBED</button>
-                                        <button onClick={() => setAddMethod('file')} className={`flex-1 py-4.5 rounded-full text-sm font-black tracking-widest transition-all duration-300 ${addMethod === 'file' ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.5)] scale-[1.02]' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}>LOCAL FILE</button>
-                                    </div>
-
-                                    <form onSubmit={handleAddGame} className="space-y-8 text-left">
-                                        <div className="space-y-3">
-                                            <label className="text-[11px] font-black uppercase tracking-[0.2em] text-purple-300 ml-6">Game Title</label>
-                                            <input 
-                                                type="text" 
-                                                placeholder="Enter game name..." 
-                                                className="w-full px-8 py-5 rounded-full neo-input text-xl font-bold text-white placeholder-gray-600"
-                                                value={newGameName}
-                                                onChange={e => setNewGameName(e.target.value)}
-                                                required
-                                            />
-                                        </div>
-
-                                        {addMethod === 'url' ? (
-                                            <div className="space-y-3 animate-in slide-in-from-right-4 duration-300">
-                                                <label className="text-[11px] font-black uppercase tracking-[0.2em] text-blue-300 ml-6">Source URL</label>
-                                                <input 
-                                                    type="url" 
-                                                    placeholder="https://..." 
-                                                    className="w-full px-8 py-5 rounded-full neo-input blue-focus text-xl font-bold text-white placeholder-gray-600"
-                                                    value={newGameUrl}
-                                                    onChange={e => setNewGameUrl(e.target.value)}
-                                                    required
-                                                />
-                                            </div>
-                                        ) : (
-                                            <div 
-                                                onClick={() => fileInputRef.current?.click()}
-                                                className="group relative min-h-[220px] flex flex-col items-center justify-center border-[3px] border-dashed border-white/10 rounded-[3rem] bg-black/20 hover:bg-emerald-500/5 hover:border-emerald-500/40 transition-all duration-300 shadow-[inset_0_2px_20px_rgba(0,0,0,0.3)] overflow-hidden cursor-pointer animate-in slide-in-from-left-4"
-                                            >
-                                                <input type="file" accept=".html" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-                                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.15)_0%,transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
-                                                <div className="w-24 h-24 bg-emerald-500/10 border border-emerald-500/20 rounded-[2rem] flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-emerald-500/20 transition-all shadow-[0_0_30px_rgba(16,185,129,0.2)]">
-                                                    <Icon name="file-code" size={48} className="text-emerald-400 drop-shadow-lg" />
-                                                </div>
-                                                <p className="font-black text-2xl text-emerald-100">{fileName || 'Click to Upload .html'}</p>
-                                                <p className="text-xs text-emerald-400/60 mt-3 uppercase font-black tracking-[0.2em]">Unlimited Size • Offline Support</p>
-                                            </div>
-                                        )}
-
-                                        <div className="space-y-3">
-                                            <label className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 ml-6">Cover Image (URL)</label>
-                                            <input 
-                                                type="url" 
-                                                placeholder="Optional image link..." 
-                                                className="w-full px-8 py-5 rounded-full neo-input text-xl font-bold text-white placeholder-gray-600"
-                                                value={newGameCover}
-                                                onChange={e => setNewGameCover(e.target.value)}
-                                            />
-                                        </div>
-
-                                        <button 
-                                            type="submit" 
-                                            className="w-full py-7 mt-6 rounded-full bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 font-black text-lg tracking-[0.2em] uppercase shadow-[0_15px_40px_rgba(147,51,234,0.5)] hover:shadow-[0_20px_60px_rgba(147,51,234,0.7)] hover:-translate-y-2 active:scale-95 transition-all duration-300 border border-white/20 border-t-white/40"
-                                        >
-                                            Save to Library
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* MODAL: NETWORK PROFILE */}
-                    {isNetworkModalOpen && (
-                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-3xl animate-in fade-in duration-500">
-                            <div className="relative w-full max-w-2xl rounded-[4rem] p-10 sm:p-14 text-center animate-in zoom-in-95 duration-500 glass-panel overflow-hidden">
-                                <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.15)_0%,transparent_50%)] pointer-events-none"></div>
-                                
-                                <button onClick={() => setIsNetworkModalOpen(false)} className="absolute top-8 right-8 p-4 rounded-full neo-input hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/30 transition-all duration-300 hover:rotate-90 z-10">
-                                    <Icon name="x" size={28} />
-                                </button>
-
-                                <div className="relative z-10">
-                                    <div className="w-32 h-32 bg-blue-500/20 border border-blue-500/30 shadow-[0_0_50px_rgba(59,130,246,0.4)] rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 rotate-3">
-                                        <Icon name="globe" size={56} className="text-blue-300 drop-shadow-xl" />
-                                    </div>
-                                    <h3 className="text-4xl sm:text-5xl font-black mb-4 tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-purple-300">Network Profile</h3>
-                                    <p className="text-blue-200/60 text-lg mb-12 max-w-md mx-auto font-medium">Claim a name to share your games with the global community.</p>
-                                    
-                                    <div className="text-left space-y-3 mb-10">
-                                        <label className="text-[11px] font-black uppercase tracking-[0.2em] text-blue-400 ml-6">Your Public Vault Name</label>
-                                        <input 
-                                            type="text" 
-                                            className="w-full px-8 py-6 rounded-full neo-input blue-focus text-2xl font-black text-center text-white placeholder-gray-600"
-                                            placeholder="e.g. ProGamer99"
-                                            value={vaultName}
-                                            onChange={e => setVaultName(e.target.value)}
-                                        />
-                                    </div>
-
-                                    <div className="flex flex-col gap-5">
-                                        <button onClick={publishVault} disabled={isPublishing} className="w-full py-6 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-black text-lg tracking-[0.2em] uppercase shadow-[0_15px_40px_rgba(59,130,246,0.5)] hover:shadow-[0_20px_60px_rgba(59,130,246,0.7)] hover:-translate-y-2 transition-all active:scale-95 disabled:opacity-50 border border-white/20">
-                                            {isPublishing ? 'Publishing...' : 'Publish Vault'}
-                                        </button>
-                                        <button onClick={deleteSharedVault} disabled={isDeleting} className="w-full py-6 rounded-full bg-black/40 border border-red-500/20 text-red-400 hover:bg-red-500/20 hover:border-red-500/50 hover:text-red-300 font-black text-sm tracking-[0.2em] uppercase transition-all disabled:opacity-50 active:scale-95 shadow-[inset_0_2px_15px_rgba(0,0,0,0.5)]">
-                                            {isDeleting ? 'Removing...' : 'Unpublish & Go Private'}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* MODAL: DELETE CONFIRMATION */}
-                    {gameToDelete && (
-                        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-3xl animate-in fade-in duration-500">
-                            <div className="relative w-full max-w-xl rounded-[4rem] p-10 sm:p-14 text-center animate-in zoom-in-95 duration-500 glass-panel overflow-hidden border-red-500/20">
-                                <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.15)_0%,transparent_50%)] pointer-events-none"></div>
-                                
-                                <div className="relative z-10">
-                                    <div className="mx-auto flex items-center justify-center h-28 w-28 rounded-[2rem] bg-red-500/10 border border-red-500/20 mb-10 shadow-[0_0_40px_rgba(239,68,68,0.3)] relative rotate-3">
-                                        <div className="absolute inset-0 rounded-[2rem] bg-red-500/20 animate-ping opacity-30"></div>
-                                        <Icon name="trash-2" size={48} className="text-red-400 drop-shadow-xl relative z-10" />
-                                    </div>
-                                    <h3 className="text-4xl font-black mb-6 text-transparent bg-clip-text bg-gradient-to-r from-white to-red-200 tracking-tighter">Delete Game?</h3>
-                                    <p className="text-red-200/60 text-xl mb-12 leading-relaxed font-medium">Are you sure you want to delete <br/><strong className="text-white bg-white/5 px-5 py-2 rounded-2xl border border-white/10 mt-4 inline-block shadow-[inset_0_2px_10px_rgba(0,0,0,0.3)]">{gameToDelete.name}</strong> <br/><span className="text-sm mt-4 block">This action is permanent.</span></p>
-                                    <div className="flex flex-col sm:flex-row gap-5">
-                                        <button onClick={() => setGameToDelete(null)} className="flex-1 py-6 rounded-full neo-input text-gray-300 font-black text-sm tracking-[0.2em] uppercase transition-all hover:text-white active:scale-95">Cancel</button>
-                                        <button onClick={confirmRemoveGame} className="flex-1 py-6 rounded-full bg-gradient-to-r from-red-600 to-rose-600 text-white font-black text-sm tracking-[0.2em] uppercase shadow-[0_15px_40px_rgba(239,68,68,0.4)] hover:shadow-[0_20px_60px_rgba(239,68,68,0.6)] transition-all hover:-translate-y-2 active:scale-95 border border-white/20 border-t-white/40">Delete</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+              <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center text-white p-4">
+                <div className="w-full max-w-sm bg-gray-900 p-8 rounded-3xl shadow-[0_0_50px_rgba(16,185,129,0.1)] border border-gray-800 text-center space-y-8">
+                  <div>
+                    <h1 className="text-6xl font-black bg-gradient-to-br from-emerald-400 to-teal-600 bg-clip-text text-transparent mb-2">MyLife</h1>
+                    <p className="text-gray-400 text-sm font-medium tracking-wide uppercase">Live your way</p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <button onClick={() => startNewLife(false)} className="w-full py-4 rounded-2xl font-bold text-lg bg-emerald-600 hover:bg-emerald-500 transition-all active:scale-95 text-white flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20">
+                      <RefreshCw size={20} /> Random Life
+                    </button>
+                    <button onClick={() => setAppState('custom')} className="w-full py-4 rounded-2xl font-bold text-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 transition-all active:scale-95 text-white flex items-center justify-center gap-2">
+                      <Settings size={20} /> Custom Life
+                    </button>
+                  </div>
                 </div>
+              </div>
             );
+          }
+
+          if (appState === 'custom') {
+            return (
+              <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center text-white p-4">
+                <div className="w-full max-w-sm bg-gray-900 p-6 rounded-3xl shadow-2xl border border-gray-800 flex flex-col max-h-[90vh]">
+                  <div className="flex items-center mb-6 shrink-0">
+                    <button onClick={() => setAppState('start')} className="p-2 -ml-2 text-gray-400 hover:text-white mr-2"><ArrowLeft size={24} /></button>
+                    <h2 className="text-2xl font-bold">Custom Life</h2>
+                  </div>
+                  
+                  <div className="space-y-4 overflow-y-auto flex-1 pr-2 custom-scrollbar">
+                    <div><label className="block text-xs font-bold uppercase text-gray-500 mb-1">First Name</label><input type="text" value={customForm.firstName} onChange={e => setCustomForm({...customForm, firstName: e.target.value})} placeholder="Leave blank for random" className="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-500 transition-colors" /></div>
+                    <div><label className="block text-xs font-bold uppercase text-gray-500 mb-1">Last Name</label><input type="text" value={customForm.lastName} onChange={e => setCustomForm({...customForm, lastName: e.target.value})} placeholder="Leave blank for random" className="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-500 transition-colors" /></div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><label className="block text-xs font-bold uppercase text-gray-500 mb-1">Gender</label><select value={customForm.gender} onChange={e => setCustomForm({...customForm, gender: e.target.value})} className="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none appearance-none"><option value="Male">Male</option><option value="Female">Female</option></select></div>
+                      <div><label className="block text-xs font-bold uppercase text-gray-500 mb-1">Royalty</label><select value={customForm.isRoyal} onChange={e => setCustomForm({...customForm, isRoyal: e.target.value === 'true'})} className="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none appearance-none"><option value={false}>Commoner</option><option value={true}>Royal</option></select></div>
+                    </div>
+                    <div><label className="block text-xs font-bold uppercase text-gray-500 mb-1">Country</label><select value={customForm.country} onChange={e => setCustomForm({...customForm, country: e.target.value})} className="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none appearance-none">{COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                    <div><label className="block text-xs font-bold uppercase text-gray-500 mb-1">City</label><input type="text" value={customForm.city} onChange={e => setCustomForm({...customForm, city: e.target.value})} placeholder="e.g. London" className="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-500 transition-colors" /></div>
+                  </div>
+
+                  <div className="pt-4 mt-4 border-t border-gray-800 shrink-0">
+                    <button onClick={() => startNewLife(true)} className="w-full py-4 rounded-2xl font-bold text-lg bg-emerald-600 hover:bg-emerald-500 transition-all active:scale-95 text-white flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20"><MapPin size={20} /> Begin Journey</button>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (!character) return null;
+
+          return (
+            <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-gray-100 font-sans flex flex-col items-center justify-center md:p-4 select-none">
+              <div className="w-full max-w-md glass-panel md:rounded-[40px] md:border-[6px] border-gray-800 shadow-[0_0_60px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col relative h-screen md:h-[850px] max-h-screen">
+                
+                <div className="bg-gradient-to-b from-gray-900 to-gray-950/50 p-5 rounded-b-3xl shadow-lg relative z-20 shrink-0 border-b border-gray-800/50 backdrop-blur-md">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                        {character.name} {character.royalStatus && <Crown size={20} className="text-yellow-400 drop-shadow-md" />}
+                      </h1>
+                      <div className="text-sm font-medium text-gray-400 mt-1 flex items-center gap-2">
+                        {character.gender} • Age {character.age}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1 flex items-center gap-1 font-medium">
+                        <MapPin size={12} /> {character.city}, {character.country}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`font-black text-xl flex items-center justify-end ${character.bankBalance < 0 ? 'text-red-500' : 'text-emerald-400 drop-shadow-md'}`}>
+                        <DollarSign size={18} className="mr-0.5" />
+                        {character.bankBalance.toLocaleString()}
+                      </div>
+                      <div className="text-xs font-bold text-blue-400 uppercase tracking-wider mt-1">
+                        {character.royalStatus ? character.royalStatus : (job ? job.title : (character.age >= 18 ? 'Unemployed' : 'Student'))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3 mt-4">
+                    <StatBar icon={<Heart size={14} />} label="Health" value={stats.health} color="bg-red-500" />
+                    <StatBar icon={<Smile size={14} />} label="Happiness" value={stats.happiness} color="bg-green-500" />
+                    <StatBar icon={<Brain size={14} />} label="Smarts" value={stats.smarts} color="bg-blue-500" />
+                    <StatBar icon={<Sparkles size={14} />} label="Looks" value={stats.looks} color="bg-yellow-500" />
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-5 space-y-3 scroll-smooth bg-gray-950 custom-scrollbar" ref={logContainerRef}>
+                  {logs.slice(-100).map((log) => (
+                    <div key={log.id} className={`text-[15px] leading-relaxed ${
+                      log.type === 'header' ? 'text-gray-500 font-black text-xs uppercase tracking-widest mt-6 text-center mb-3' :
+                      log.type === 'good' ? 'text-emerald-400 bg-emerald-950/20 p-2 rounded-lg border border-emerald-900/30' :
+                      log.type === 'bad' ? 'text-red-400 bg-red-950/20 p-2 rounded-lg border border-red-900/30' : 'text-gray-300'
+                    }`}>
+                      {log.type !== 'header' && <span className="mr-2 font-bold opacity-40">[{log.year}]</span>}
+                      {log.text}
+                    </div>
+                  ))}
+                  
+                  {!character.isAlive && (
+                    <div className="mt-8 p-6 bg-gray-900 border border-gray-800 rounded-2xl text-center shadow-xl">
+                      <div className="w-16 h-16 bg-red-950 rounded-full flex items-center justify-center mx-auto mb-4">
+                         <AlertCircle className="w-8 h-8 text-red-500" />
+                      </div>
+                      <h2 className="text-2xl font-black text-white mb-2 uppercase tracking-wide">Deceased</h2>
+                      <p className="text-gray-400 text-sm mb-6 leading-relaxed">{character.causeOfDeath}</p>
+                      
+                      <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                        {relationships.filter(r => r.type === 'Son' || r.type === 'Daughter').length > 0 && (
+                            <div className="border-b border-gray-800 pb-3 mb-3">
+                                <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Continue Legacy</div>
+                                {relationships.filter(r => r.type === 'Son' || r.type === 'Daughter').map(child => (
+                                     <button key={child.id} onClick={() => continueAsChild(child)} className="w-full bg-blue-900/50 hover:bg-blue-800 border border-blue-800 text-blue-200 font-bold py-3 px-4 rounded-xl flex items-center justify-between mb-2 transition-all active:scale-95">
+                                         <span className="flex items-center gap-2"><Baby size={18}/> Play as {child.name}</span>
+                                         <span className="text-xs font-normal opacity-75">Age {child.age}</span>
+                                     </button>
+                                ))}
+                            </div>
+                        )}
+                        
+                        <button onClick={() => startNewLife(false)} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95">
+                          <RefreshCw size={18} /> Reincarnate (Random)
+                        </button>
+                        <button onClick={() => setAppState('start')} className="w-full bg-gray-800 hover:bg-gray-700 text-white font-bold py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95">
+                          Main Menu
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <div className="h-10"></div>
+                </div>
+
+                {activeScreen === 'activities' && (
+                  <ScreenLayout title="Activities">
+                    {character.age >= 9 && (
+                        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 mb-4">
+                           <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2"><Smartphone size={16}/> Social Media</h3>
+                           {character.hasSocialMedia && <div className="text-emerald-400 font-bold mb-3">{character.followers.toLocaleString()} Followers</div>}
+                           <MenuCard icon={<Smartphone />} title={character.hasSocialMedia ? "Post Update" : "Create Account"} desc={character.hasSocialMedia ? "Try to go viral" : "Start building your following"} onClick={useSocialMedia} color="text-purple-400" bg="bg-purple-950/30" />
+                        </div>
+                    )}
+
+                    {character.age >= 11 && <MenuCard icon={<Trophy />} title="Sports & Athletics" desc="Join a team, practice, or go pro" onClick={() => setActiveScreen('sports')} color="text-yellow-500" bg="bg-yellow-950/30" />}
+                    <MenuCard icon={<FirstAid />} title="Medical Center" desc="Checkups and Treatments" onClick={() => setActiveScreen('doctor')} color="text-red-400" bg="bg-red-950/30" />
+                    {character.age >= 18 && <MenuCard icon={<Plane />} title="Go on Vacation" desc="Plan a trip abroad" onClick={() => setActiveScreen('vacation')} color="text-sky-400" bg="bg-sky-950/30" />}
+                    {character.age >= 13 && <MenuCard icon={<HeartHandshake />} title="Volunteer" desc="Help out the community (Free)" onClick={activityVolunteer} color="text-teal-400" bg="bg-teal-950/30" /> }
+                    
+                    {character.age >= 16 && !character.hasDriversLicense && (
+                        <MenuCard icon={<IdCard />} title="Take Driving Test" desc="Get your license ($50)" onClick={takeDrivingTest} color="text-orange-400" bg="bg-orange-950/30" />
+                    )}
+
+                    {character.age >= 4 && <MenuCard icon={<UserPlus />} title="Make a Friend" desc="Go out and meet someone new" onClick={makeFriend} color="text-pink-400" bg="bg-pink-950/30" />}
+                    {character.age >= 6 && <MenuCard icon={<BookOpen />} title="Study Hard" desc="Attempt to improve your smarts" onClick={activityStudy} color="text-blue-400" bg="bg-blue-950/30" />}
+                    {character.age >= 4 && <MenuCard icon={<BookOpen />} title="Visit Library" desc="Read books for free" onClick={activityLibrary} color="text-indigo-400" bg="bg-indigo-950/30" /> }
+                    {character.age >= 4 && <MenuCard icon={<Book />} title="Read a Book" desc="Enjoy some casual reading" onClick={activityRead} color="text-indigo-400" bg="bg-indigo-950/30" />}
+                    {character.age >= 8 && <MenuCard icon={<Sparkles />} title="Meditate" desc="Find your inner peace" onClick={activityMeditate} color="text-purple-400" bg="bg-purple-950/30" /> }
+                    {character.age >= 18 && <MenuCard icon={<Dog />} title="Adopt a Pet" desc="Visit the animal shelter ($50)" onClick={adoptPet} color="text-yellow-400" bg="bg-yellow-950/30" />}
+                    {character.age >= 12 && <MenuCard icon={<Heart />} title="Find a Date" desc="Look for romance" onClick={findDate} color="text-pink-400" bg="bg-pink-950/30" />}
+                    
+                    {character.age >= 12 && (
+                        <MenuCard icon={<Dumbbell />} title="Hit the Gym" desc={character.age >= 18 ? "$20 fee" : "Free"} onClick={() => { 
+                            if(character.age >= 18 && character.bankBalance < 20) {
+                                addLog("You cannot afford the $20 gym fee.", "bad");
+                                setActiveScreen('main');
+                                return;
+                            }
+                            updateBank(character.age >= 18 ? -20 : 0); 
+                            updateStat('health', 5); 
+                            updateStat('looks', 2); 
+                            addLog("You had a great workout.", "good"); 
+                            setActiveScreen('main'); 
+                        }} color="text-orange-400" bg="bg-orange-950/30" /> 
+                    )}
+                  </ScreenLayout>
+                )}
+
+                {activeScreen === 'doctor' && (
+                  <ScreenLayout title="Medical Center">
+                    <div className="bg-gray-900 border border-red-800/50 rounded-2xl p-5 mb-4 shadow-lg animate-in slide-in-from-bottom-2">
+                        <h3 className="text-lg font-bold text-white mb-2">Your Health Records</h3>
+                        {character.illnesses && character.illnesses.length > 0 ? (
+                            <div className="space-y-4">
+                                <p className="text-gray-400 text-sm mb-4">You have active diagnoses. Seek treatment immediately!</p>
+                                {character.illnesses.map(ill => (
+                                    <div key={ill.name} className="bg-gray-950 p-4 rounded-xl border border-gray-800">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <span className="font-bold text-red-400 text-lg">{ill.name}</span>
+                                            <span className="text-xs font-bold text-gray-500 uppercase">Severity: {ill.severity}</span>
+                                        </div>
+                                        <button onClick={() => treatIllness(ill)} className="w-full bg-red-950/30 hover:bg-red-900/50 text-red-400 font-bold py-3 rounded-xl transition-all border border-red-900/50 flex justify-between items-center px-4">
+                                            <span>Treat Illness</span>
+                                            <span>{character.age < 18 ? 'Free' : `$${ill.cureCost.toLocaleString()}`}</span>
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-6">
+                                <div className="mx-auto w-16 h-16 bg-emerald-950/30 text-emerald-500 rounded-full flex items-center justify-center mb-4">
+                                    <Heart size={32} />
+                                </div>
+                                <p className="text-emerald-400 font-bold text-lg mb-1">Perfectly Healthy!</p>
+                                <p className="text-gray-400 text-sm mb-6">You currently have no diagnosed illnesses.</p>
+                                <button onClick={() => { 
+                                    if(character.age >= 18 && character.bankBalance < 50) { addLog("You cannot afford a checkup.", "bad"); setActiveScreen('main'); return; }
+                                    updateBank(character.age < 18 ? 0 : -50); updateStat('health', 5); addLog("You got a routine checkup.", "good"); setActiveScreen('main'); 
+                                }} className="w-full bg-emerald-950/30 hover:bg-emerald-900/50 text-emerald-400 font-bold py-3 rounded-xl transition-all border border-emerald-900/50">
+                                    Routine Checkup ({character.age < 18 ? 'Free' : '$50'})
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                  </ScreenLayout>
+                )}
+
+                {activeScreen === 'sports' && (
+                  <ScreenLayout title="Sports & Athletics">
+                    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 mb-4">
+                        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2"><Trophy size={16}/> Athletic Profile</h3>
+                        <StatBar icon={<Dumbbell size={14} />} label="Athleticism" value={stats.athleticism} color="bg-orange-500" />
+                        
+                        {character.sports.team ? (
+                            <div className="mt-4 pt-4 border-t border-gray-800">
+                                <div className="text-white font-bold text-lg">{character.sports.team}</div>
+                                <div className="text-gray-400 text-sm mb-2">{character.sports.level} {character.sports.sport}</div>
+                                <StatBar icon={<Medal size={14} />} label="Performance" value={character.sports.performance} color="bg-yellow-500" />
+                                
+                                {character.sports.coach && (
+                                    <div className="mt-5 mb-2">
+                                        <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Coaching Staff</h4>
+                                        <div className="flex justify-between items-center bg-gray-950 p-3 rounded-xl border border-gray-800">
+                                            <div>
+                                                <div className="font-bold text-white text-sm">{character.sports.coach.name}</div>
+                                                <div className="text-xs text-gray-400">Head Coach • Age {character.sports.coach.age}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {character.sports.roster && character.sports.roster.length > 0 && (
+                                    <div className="mt-4 mb-4">
+                                        <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Team Roster</h4>
+                                        <div className="space-y-2">
+                                            {character.sports.roster.map(t => {
+                                                const isFriend = relationships.some(r => r.id === t.id);
+                                                return (
+                                                    <div key={t.id} className="flex justify-between items-center bg-gray-950 p-3 rounded-xl border border-gray-800">
+                                                        <div>
+                                                            <div className="font-bold text-white text-sm">{t.name}</div>
+                                                            <div className="text-xs text-gray-400">Teammate • Age {t.age}</div>
+                                                        </div>
+                                                        {!isFriend ? (
+                                                            <button onClick={() => befriendTeammate(t)} className="text-xs font-bold text-pink-400 bg-pink-950/30 px-3 py-1.5 rounded-lg border border-pink-900/50 hover:bg-pink-900/50 transition-colors">
+                                                                Befriend
+                                                            </button>
+                                                        ) : (
+                                                            <span className="text-xs font-bold text-emerald-400 px-2">Friend</span>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="mt-4 pt-2 border-t border-gray-800">
+                                    <button onClick={quitSport} className="w-full bg-red-950/30 text-red-400 border border-red-900/50 hover:bg-red-900 hover:text-white font-bold py-3 rounded-xl transition-all text-sm">Quit Team</button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="mt-4 pt-4 border-t border-gray-800 text-gray-400 text-sm italic">You are not currently on a sports team.</div>
+                        )}
+                    </div>
+
+                    <MenuCard icon={<Dumbbell />} title="Practice & Train" desc="Improve your athleticism" onClick={practiceSport} color="text-orange-400" bg="bg-orange-950/30" />
+
+                    {!character.sports.team && (
+                        <>
+                            <div className="mb-2 mt-6 font-bold text-gray-500 uppercase text-xs tracking-wider px-2">Tryouts</div>
+                            
+                            {(character.age >= 11 && character.age <= 14) && (
+                                <>
+                                    <MenuCard icon={<Basketball />} title="Middle School Basketball" desc="Try out for the team" onClick={() => tryOutSport("Basketball", "Middle School")} />
+                                    <MenuCard icon={<Baseball />} title="Middle School Baseball" desc="Try out for the team" onClick={() => tryOutSport("Baseball", "Middle School")} />
+                                    <MenuCard icon={<SoccerBall />} title="Middle School Soccer" desc="Try out for the team" onClick={() => tryOutSport("Soccer", "Middle School")} />
+                                </>
+                            )}
+
+                            {(character.age > 14 && character.age <= 18) && (
+                                <>
+                                    <MenuCard icon={<Basketball />} title="High School Basketball" desc="Try out for the varsity team" onClick={() => tryOutSport("Basketball", "High School")} />
+                                    <MenuCard icon={<Baseball />} title="High School Baseball" desc="Try out for the varsity team" onClick={() => tryOutSport("Baseball", "High School")} />
+                                    <MenuCard icon={<SoccerBall />} title="High School Soccer" desc="Try out for the varsity team" onClick={() => tryOutSport("Soccer", "High School")} />
+                                </>
+                            )}
+
+                            {(character.age > 18 && education.current && education.current.includes("University")) && (
+                                <>
+                                    <MenuCard icon={<Basketball />} title="College Basketball" desc="Try out for the college team" onClick={() => tryOutSport("Basketball", "College")} />
+                                    <MenuCard icon={<Baseball />} title="College Baseball" desc="Try out for the college team" onClick={() => tryOutSport("Baseball", "College")} />
+                                    <MenuCard icon={<SoccerBall />} title="College Soccer" desc="Try out for the college team" onClick={() => tryOutSport("Soccer", "College")} />
+                                </>
+                            )}
+
+                            {(character.age >= 18) && (
+                                <>
+                                    <div className="mb-2 mt-6 font-bold text-yellow-500 uppercase text-xs tracking-wider px-2">Professional Leagues</div>
+                                    <MenuCard icon={<Basketball />} title="Pro Basketball League" desc="Declare for the Draft" onClick={() => tryOutSport("Basketball", "Pro")} color="text-yellow-400" bg="bg-yellow-950/20" />
+                                    <MenuCard icon={<Baseball />} title="Pro Baseball League" desc="Declare for the Draft" onClick={() => tryOutSport("Baseball", "Pro")} color="text-yellow-400" bg="bg-yellow-950/20" />
+                                    <MenuCard icon={<SoccerBall />} title="Pro Soccer League" desc="Declare for the Draft" onClick={() => tryOutSport("Soccer", "Pro")} color="text-yellow-400" bg="bg-yellow-950/20" />
+                                </>
+                            )}
+                        </>
+                    )}
+                  </ScreenLayout>
+                )}
+
+                {activeScreen === 'vacation' && (
+                  <ScreenLayout title="Plan Vacation">
+                    <div className="bg-gray-900 border border-sky-800/50 rounded-2xl p-5 mb-4 shadow-lg animate-in slide-in-from-bottom-2">
+                       <h3 className="text-lg font-bold text-white mb-4">Book a Flight</h3>
+                       
+                       <label className="block text-xs font-bold uppercase text-gray-400 mb-2">Destination</label>
+                       <select value={selectedDest.name} onChange={(e) => setSelectedDest(VACATION_SPOTS.find(v => v.name === e.target.value))} className="w-full bg-gray-950 border border-gray-700 rounded-xl p-3 text-white focus:outline-none focus:border-sky-500 mb-4 appearance-none">
+                          {VACATION_SPOTS.map(v => <option key={v.name} value={v.name}>{v.name} (Base: ${v.baseCost})</option>)}
+                       </select>
+
+                       <label className="block text-xs font-bold uppercase text-gray-400 mb-2">Cabin Class</label>
+                       <select value={selectedClass.name} onChange={(e) => setSelectedClass(FLIGHT_CLASSES.find(c => c.name === e.target.value))} className="w-full bg-gray-950 border border-gray-700 rounded-xl p-3 text-white focus:outline-none focus:border-sky-500 mb-4 appearance-none">
+                          {FLIGHT_CLASSES.map(c => <option key={c.name} value={c.name}>{c.name} ({c.multiplier}x cost)</option>)}
+                       </select>
+
+                       <label className="block text-xs font-bold uppercase text-gray-400 mb-2">Travel Companions</label>
+                       <div className="bg-gray-950 border border-gray-700 rounded-xl p-3 mb-5 max-h-32 overflow-y-auto custom-scrollbar space-y-2">
+                           {relationships.filter(r => ['Partner', 'Fiancé(e)', 'Spouse', 'Son', 'Daughter', 'Mother', 'Father', 'Brother', 'Sister', 'Friend'].includes(r.type)).length === 0 ? (
+                               <div className="text-gray-500 italic text-xs">No eligible companions to invite.</div>
+                           ) : (
+                               relationships.filter(r => ['Partner', 'Fiancé(e)', 'Spouse', 'Son', 'Daughter', 'Mother', 'Father', 'Brother', 'Sister', 'Friend'].includes(r.type)).map(r => (
+                                   <label key={r.id} className="flex items-center space-x-3 text-sm text-gray-300">
+                                       <input type="checkbox"
+                                              checked={vacationCompanions.includes(r.id)}
+                                              onChange={(e) => {
+                                                  if (e.target.checked) setVacationCompanions([...vacationCompanions, r.id]);
+                                                  else setVacationCompanions(vacationCompanions.filter(id => id !== r.id));
+                                              }}
+                                              className="form-checkbox h-4 w-4 text-sky-500 rounded bg-gray-900 border-gray-700" />
+                                       <span>{r.name} ({r.type})</span>
+                                   </label>
+                               ))
+                           )}
+                       </div>
+                       
+                       <div className="text-sky-400 font-bold text-2xl mb-5 text-center bg-gray-950 p-3 rounded-xl border border-gray-800">
+                          Total: ${(selectedDest.baseCost * selectedClass.multiplier * (1 + vacationCompanions.length)).toLocaleString()}
+                       </div>
+                       
+                       <div className="flex gap-2">
+                          <button onClick={bookVacation} className="flex-1 bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-xl transition-all flex justify-center items-center gap-2 shadow-lg shadow-sky-900/20"><Plane size={18}/> Book Trip</button>
+                          <button onClick={() => { setActiveScreen('activities'); setVacationCompanions([]); }} className="flex-1 bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 rounded-xl transition-all border border-gray-700">Cancel</button>
+                       </div>
+                    </div>
+                  </ScreenLayout>
+                )}
+
+                {activeScreen === 'jobs' && (
+                  <ScreenLayout title="Careers & Part-Time">
+                    {job && <MenuCard icon={<AlertCircle />} title={`Quit ${job.title}`} desc="Resign from your position" onClick={() => {setJob(null); addLog("You quit your job.", "neutral"); setActiveScreen('main');}} danger />}
+                    <div className="mb-4 mt-2 font-bold text-gray-500 uppercase text-xs tracking-wider px-2">Available Positions</div>
+                    
+                    {JOBS.filter(j => character.age >= j.minAge).length === 0 && (
+                        <p className="text-center text-gray-500 mt-4 text-sm">You are too young to work! Focus on school.</p>
+                    )}
+
+                    {JOBS.filter(j => character.age >= j.minAge && (!j.maxAge || character.age <= j.maxAge)).map((j) => {
+                      const qualified = (!j.reqDegree || education.degrees.some(d => {
+                          if (Array.isArray(j.reqDegree)) {
+                              return j.reqDegree.some(req => d.includes(req));
+                          }
+                          return d.includes(j.reqDegree);
+                      })) && stats.smarts >= j.minSmarts;
+
+                      return (
+                        <button key={j.title} onClick={() => { if(qualified) { setJob(j); addLog(`You were hired as a ${j.title}!`, "good"); updateStat('happiness', 20); setActiveScreen('main'); } else { addLog(`Rejected. You lack the qualifications for ${j.title}.`, "bad"); setActiveScreen('main'); } }} className={`w-full p-4 rounded-2xl flex items-center mb-3 border ${qualified ? 'bg-gray-800 border-gray-700 hover:border-emerald-500' : 'bg-gray-900 border-gray-800 opacity-60'} transition-all text-left`}>
+                          <div className="flex-1">
+                            <div className="font-bold text-white text-lg">{j.title}</div>
+                            <div className="text-emerald-400 font-medium text-sm my-0.5">${j.salary.toLocaleString()} / yr</div>
+                            <div className="text-xs text-gray-500 mt-1">
+                                {j.reqDegree ? `Requires: ${Array.isArray(j.reqDegree) ? j.reqDegree.join(' or ') : j.reqDegree}` : 'No Degree Required'} • Smarts: {j.minSmarts}+
+                            </div>
+                          </div>
+                          <ChevronRight className="text-gray-600" />
+                        </button>
+                      )
+                    })}
+                  </ScreenLayout>
+                )}
+
+                {activeScreen === 'education' && (
+                  <ScreenLayout title="Education">
+                    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 mb-4">
+                       <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Your Credentials</h3>
+                       {education.degrees.length === 0 ? <p className="text-gray-400 italic">None</p> : education.degrees.map(d => <div key={d} className="text-white font-medium flex items-center gap-2 mb-1"><GraduationCap size={16} className="text-blue-400 shrink-0"/> <span className="truncate">{d}</span></div>)}
+                    </div>
+
+                    {education.current && (
+                      <div className="mb-4">
+                        <MenuCard icon={<BookOpen/>} title={`Enrolled:`} desc={education.current} onClick={() => {}} bg="bg-blue-900/40" color="text-blue-400"/>
+                        <div className="flex gap-2 mt-2">
+                          <button onClick={graduate} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-all">Graduate</button>
+                          <button onClick={dropOut} className="flex-1 bg-red-900/50 text-red-400 hover:bg-red-900 hover:text-white font-bold py-3 rounded-xl transition-all">Drop Out</button>
+                        </div>
+                      </div>
+                    )}
+
+                    {!education.current && character.age >= 18 && enrollmentProcess && (
+                      <div className="bg-gray-900 border border-emerald-800/50 rounded-2xl p-5 mb-4 shadow-lg animate-in slide-in-from-bottom-2">
+                         <h3 className="text-lg font-bold text-white mb-1">Enroll in {enrollmentProcess.school}</h3>
+                         <p className="text-sm text-emerald-400 mb-5 font-medium">Tuition: ${enrollmentProcess.cost.toLocaleString()}</p>
+                         
+                         <label className="block text-xs font-bold uppercase text-gray-400 mb-2">Select Your Major</label>
+                         <select value={selectedMajor} onChange={(e) => setSelectedMajor(e.target.value)} className="w-full bg-gray-950 border border-gray-700 rounded-xl p-3 text-white focus:outline-none focus:border-emerald-500 mb-5 appearance-none">
+                            {MAJORS.map(m => <option key={m} value={m}>{m}</option>)}
+                         </select>
+                         
+                         <div className="flex gap-2">
+                            <button onClick={() => applyEducation(enrollmentProcess.school, enrollmentProcess.cost, selectedMajor)} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-all">Pay & Enroll</button>
+                            <button onClick={() => setEnrollmentProcess(null)} className="flex-1 bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 rounded-xl transition-all border border-gray-700">Cancel</button>
+                         </div>
+                      </div>
+                    )}
+
+                    {!education.current && character.age >= 18 && !enrollmentProcess && (
+                      <>
+                        <div className="mb-2 font-bold text-gray-500 uppercase text-xs tracking-wider px-2">Undergraduate Programs</div>
+                        <MenuCard icon={<GraduationCap />} title="Community College" desc="2-Year Degree ($10,000)" onClick={() => startEnrollment("Community College", 10000, true)} />
+                        <MenuCard icon={<GraduationCap />} title="University" desc="4-Year Bachelors ($40,000)" onClick={() => startEnrollment("University", 40000, true)} />
+                        
+                        {education.degrees.some(d => d.includes("University")) && (
+                          <>
+                            <div className="mb-2 mt-6 font-bold text-gray-500 uppercase text-xs tracking-wider px-2">Graduate & Professional Schools</div>
+                            <MenuCard icon={<BookOpen />} title="Graduate School" desc="Master's Degree ($30,000)" onClick={() => startEnrollment("Graduate School", 30000, true)} />
+                            <MenuCard icon={<Stethoscope />} title="Nursing School" desc="Advanced Nursing ($50,000)" onClick={() => startEnrollment("Nursing School", 50000, false)} />
+                            <MenuCard icon={<Briefcase />} title="Law School" desc="Juris Doctor ($120,000)" onClick={() => startEnrollment("Law School", 120000, false)} />
+                            <MenuCard icon={<Activity />} title="Business School" desc="MBA ($90,000)" onClick={() => startEnrollment("Business School", 90000, false)} />
+                            <MenuCard icon={<Stethoscope />} title="Medical School" desc="MD ($150,000)" onClick={() => startEnrollment("Medical School", 150000, false)} />
+                          </>
+                        )}
+
+                        {education.degrees.some(d => d.includes("Graduate School")) && (
+                          <>
+                            <div className="mb-2 mt-6 font-bold text-gray-500 uppercase text-xs tracking-wider px-2">Doctoral Programs</div>
+                            <MenuCard icon={<GraduationCap />} title="Doctorate (PhD)" desc="PhD Program ($80,000)" onClick={() => startEnrollment("Doctorate (PhD)", 80000, true)} />
+                          </>
+                        )}
+                      </>
+                    )}
+                    {character.age < 18 && !education.current && <p className="text-center text-gray-500">Focus on primary school first.</p>}
+                  </ScreenLayout>
+                )}
+
+                {activeScreen === 'relationships' && (
+                   <ScreenLayout title="Relationships">
+                     {relationships.length === 0 && <p className="text-center text-gray-500 mt-10">You have no close relationships right now.</p>}
+                     {relationships.map(person => (
+                        <div key={person.id} className="bg-gray-800 border border-gray-700 rounded-2xl overflow-hidden mb-4">
+                           <div className="p-4 border-b border-gray-700 bg-gray-800/50 flex justify-between items-center">
+                              <div>
+                                <div className="font-bold text-lg text-white">{person.name}</div>
+                                <div className="text-sm text-gray-400 capitalize">
+                                    {person.type} • {person.gender} • {person.type === 'Pet' ? `Age ${person.age} (Pet)` : `Age ${person.age}`}
+                                </div>
+                              </div>
+                              <div className="w-24">
+                                 <div className="text-[10px] text-gray-500 font-bold uppercase mb-1 text-right">Bond</div>
+                                 <div className="h-2 bg-gray-900 rounded-full overflow-hidden"><div className="h-full bg-pink-500 transition-all" style={{width: `${person.relationshipLevel}%`}}></div></div>
+                              </div>
+                           </div>
+
+                           {person.type === 'Pet' ? (
+                               <div className="grid grid-cols-2 divide-x divide-gray-700/50 bg-gray-900 border-t border-gray-700">
+                                   <button onClick={() => interact(person, 'spend_time')} className="p-3 flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors text-blue-400 font-bold text-sm"><MessageCircle size={16}/> Play</button>
+                                   <button onClick={() => interact(person, 'treat')} className="p-3 flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors text-emerald-400 font-bold text-sm"><Heart size={16}/> Give Treat</button>
+                               </div>
+                           ) : (
+                               <>
+                                   <div className="grid grid-cols-4 divide-x divide-gray-700/50 bg-gray-900">
+                                      <button onClick={() => interact(person, 'spend_time')} className="p-3 flex flex-col items-center justify-center gap-1 hover:bg-gray-800 transition-colors text-gray-400 hover:text-white"><MessageCircle size={18}/> <span className="text-[10px] font-bold">Time</span></button>
+                                      <button onClick={() => interact(person, 'converse')} className="p-3 flex flex-col items-center justify-center gap-1 hover:bg-gray-800 transition-colors text-gray-400 hover:text-white"><MessageCircle size={18}/> <span className="text-[10px] font-bold">Chat</span></button>
+                                      <button onClick={() => interact(person, 'compliment')} className="p-3 flex flex-col items-center justify-center gap-1 hover:bg-gray-800 transition-colors text-emerald-400 hover:text-emerald-300"><ThumbsUp size={18}/> <span className="text-[10px] font-bold">Praise</span></button>
+                                      <button onClick={() => interact(person, 'insult')} className="p-3 flex flex-col items-center justify-center gap-1 hover:bg-gray-800 transition-colors text-red-400 hover:text-red-300"><ThumbsDown size={18}/> <span className="text-[10px] font-bold">Insult</span></button>
+                                   </div>
+                                   {['Partner', 'Fiancé(e)', 'Spouse'].includes(person.type) && character.age >= 18 && (
+                                      <div className="grid grid-cols-2 divide-x divide-gray-700/50 border-t border-gray-700 bg-gray-900">
+                                         {person.type === 'Partner' && <button onClick={() => interact(person, 'propose')} className="p-3 flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors text-pink-400 font-bold text-sm">Propose</button>}
+                                         {person.type === 'Fiancé(e)' && <button onClick={() => interact(person, 'marry')} className="p-3 flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors text-pink-400 font-bold text-sm">Marry ($5k)</button>}
+                                         {['Fiancé(e)', 'Spouse'].includes(person.type) && <button onClick={() => interact(person, 'have_baby')} className="p-3 flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors text-blue-400 font-bold text-sm"><Baby size={16}/> Have Baby</button>}
+                                      </div>
+                                   )}
+                                   
+                                   {/* Added Break Up / Divorce Button */}
+                                   {['Partner', 'Fiancé(e)', 'Spouse'].includes(person.type) && (
+                                      <div className="grid grid-cols-1 divide-x divide-gray-700/50 border-t border-gray-700 bg-gray-900">
+                                         <button onClick={() => interact(person, 'break_up')} className="p-3 flex items-center justify-center gap-2 hover:bg-red-950/30 transition-colors text-red-400 font-bold text-sm">
+                                            {person.type === 'Spouse' ? 'Get a Divorce' : 'Break Up'}
+                                         </button>
+                                      </div>
+                                   )}
+                               </>
+                           )}
+                        </div>
+                     ))}
+                   </ScreenLayout>
+                )}
+
+                {activeScreen === 'assets' && (
+                   <ScreenLayout title="Assets & Wealth">
+                      {character.age < 18 ? <p className="text-center text-gray-500 mt-10">You must be 18 to purchase assets.</p> : (
+                         <>
+                           <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 mb-5 shadow-inner">
+                              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Your Portfolio</h3>
+                              {!character.hasDriversLicense && <p className="text-orange-400 text-xs mb-2 italic">You need a driver's license to buy cars.</p>}
+                              {assets.length === 0 ? <p className="text-gray-400 italic">No assets owned.</p> : assets.map((a) => (
+                                 <div key={a.id} className="flex justify-between items-center py-2 border-b border-gray-800 last:border-0 text-white font-medium">
+                                    <span className="flex items-center gap-2">{a.type === 'Car' ? <Car size={16} className="text-gray-400"/> : <Home size={16} className="text-gray-400"/>} {a.name}</span>
+                                    <span className="text-emerald-400">${a.value.toLocaleString()}</span>
+                                 </div>
+                              ))}
+                           </div>
+
+                           <div className="mb-2 font-bold text-gray-500 uppercase text-xs tracking-wider px-2">Car Dealership</div>
+                           {CAR_DEALER.map((car) => (
+                              <MenuCard key={car.name} icon={<Car/>} title={car.name} desc={`Condition: ${car.condition} • $${car.value.toLocaleString()}`} 
+                                 onClick={() => { 
+                                     if(!character.hasDriversLicense) { addLog("You need a driver's license to buy a car!", "bad"); return; }
+                                     if(character.bankBalance >= car.value) { updateBank(-car.value); setAssets(prev => [...prev, {id: generateId(), type: 'Car', ...car}]); addLog(`Bought a ${car.name}!`, "good"); updateStat('happiness', 15); setActiveScreen('main'); } else addLog("Not enough money.", "bad"); 
+                                 }} />
+                           ))}
+
+                           <div className="mt-6 mb-2 font-bold text-gray-500 uppercase text-xs tracking-wider px-2">Real Estate Broker</div>
+                           {REAL_ESTATE.map((house) => (
+                              <MenuCard key={house.name} icon={<Home/>} title={house.name} desc={`$${house.value.toLocaleString()}`} 
+                                 onClick={() => { if(character.bankBalance >= house.value) { updateBank(-house.value); setAssets(prev => [...prev, {id: generateId(), type: 'House', ...house}]); addLog(`Bought a ${house.name}!`, "good"); updateStat('happiness', 25); setActiveScreen('main'); } else addLog("Not enough money.", "bad"); }} />
+                           ))}
+                         </>
+                      )}
+                   </ScreenLayout>
+                )}
+
+                <div className="bg-gray-950/80 border-t border-gray-800/80 p-4 shrink-0 z-40 relative pb-safe shadow-[0_-20px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+                  {character.isAlive && activeScreen === 'main' && (
+                    <div className="grid grid-cols-5 gap-2 mb-4">
+                      <NavBtn icon={<Users />} label="Social" onClick={() => setActiveScreen('relationships')} />
+                      <NavBtn icon={<GraduationCap />} label="School" onClick={() => setActiveScreen('education')} />
+                      <NavBtn icon={<Briefcase />} label="Jobs" onClick={() => setActiveScreen('jobs')} />
+                      <NavBtn icon={<Home />} label="Assets" onClick={() => setActiveScreen('assets')} />
+                      <NavBtn icon={<Activity />} label="Action" onClick={() => setActiveScreen('activities')} />
+                    </div>
+                  )}
+
+                  <button
+                    onClick={ageUp}
+                    disabled={!character.isAlive}
+                    className={`w-full py-4 rounded-[20px] font-black text-2xl tracking-wide shadow-2xl transition-all duration-200 active:scale-[0.97] ${
+                      character.isAlive 
+                        ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-400 hover:to-teal-400 shadow-emerald-900/40 hover:shadow-emerald-900/60' 
+                        : 'bg-gray-900 text-gray-700 cursor-not-allowed border border-gray-800'
+                    }`}
+                  >
+                    + AGE
+                  </button>
+                </div>
+                
+                {popupAlert && (
+                  <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in">
+                     <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 shadow-2xl w-full text-center max-w-xs">
+                         <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-inner ${popupAlert.type === 'bad' ? 'bg-red-950/50 text-red-500 border border-red-900/50' : 'bg-emerald-950/50 text-emerald-500 border border-emerald-900/50'}`}>
+                            {popupAlert.type === 'bad' ? <AlertCircle size={32} /> : <Heart size={32} />}
+                         </div>
+                         <h2 className="text-xl font-bold text-white mb-2">{popupAlert.title}</h2>
+                         <p className="text-gray-400 mb-6 text-sm">{popupAlert.message}</p>
+                         <button onClick={() => setPopupAlert(null)} className="w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white font-bold py-3 rounded-xl transition-all active:scale-95">
+                             Dismiss
+                         </button>
+                     </div>
+                  </div>
+                )}
+                
+              </div>
+            </div>
+          );
         }
 
-        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+        function StatBar({ icon, label, value, color }) {
+          return (
+            <div className="flex items-center gap-3 bg-gray-950/50 p-2 rounded-xl border border-gray-800/50 backdrop-blur-sm">
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${color.replace('bg-', 'text-').replace('500', '400')} bg-gray-900 shadow-inner`}>{icon}</div>
+              <div className="flex-1">
+                <div className="flex justify-between text-[10px] font-black uppercase text-gray-500 mb-1 tracking-wider">
+                  <span>{label}</span>
+                  <span className="text-gray-400">{value}%</span>
+                </div>
+                <div className="h-1.5 w-full bg-gray-900 rounded-full overflow-hidden shadow-inner">
+                  <div className={`h-full ${color} transition-all duration-700 ease-out shadow-[0_0_10px_rgba(255,255,255,0.2)]`} style={{ width: `${value}%` }} />
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        function MenuCard({ icon, title, desc, onClick, bg = 'bg-gray-800', color = 'text-gray-300', danger = false }) {
+          return (
+            <button onClick={onClick} className={`w-full p-4 rounded-2xl flex items-center mb-3 transition-all duration-200 active:scale-95 hover:-translate-y-0.5 text-left border shadow-sm hover:shadow-md ${danger ? 'bg-red-950/20 border-red-900/50 hover:border-red-500 hover:shadow-red-900/20' : 'bg-gray-900/60 border-gray-800 hover:border-emerald-500 hover:shadow-emerald-900/20'}`}>
+              <div className={`p-3 rounded-xl mr-4 flex-shrink-0 shadow-inner ${danger ? 'bg-red-900/30 text-red-500' : `${bg} ${color}`}`}>
+                {icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className={`font-bold text-lg truncate ${danger ? 'text-red-400' : 'text-white'}`}>{title}</div>
+                <div className="text-sm text-gray-400 truncate">{desc}</div>
+              </div>
+            </button>
+          );
+        }
+
+        function NavBtn({ icon, label, onClick }) {
+          return (
+            <button onClick={onClick} className="flex flex-col items-center justify-center py-2.5 px-1 rounded-xl bg-gray-900/50 hover:bg-gray-800/80 border border-gray-800/50 hover:border-emerald-500/50 transition-all duration-200 active:scale-90 text-gray-400 hover:text-emerald-400 gap-1.5 shadow-sm">
+              {React.cloneElement(icon, { size: 22 })}
+              <span className="text-[9px] font-bold uppercase tracking-wide">{label}</span>
+            </button>
+          );
+        }
+
+        // Render the App
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
